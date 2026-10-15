@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="DevSetup logo">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d2738"/>
+      <stop offset="1" stop-color="#0a0e15"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.28" cy="0.18" r="0.85">
+      <stop offset="0" stop-color="#3ddc97" stop-opacity="0.30"/>
+      <stop offset="1" stop-color="#3ddc97" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="mark" x1="0.1" y1="0" x2="0.9" y2="1">
+      <stop offset="0" stop-color="#63f2b6"/>
+      <stop offset="1" stop-color="#22c1dc"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" rx="232" fill="url(#bg)"/>
+  <rect width="1024" height="1024" rx="232" fill="url(#glow)"/>
+  <rect x="2" y="2" width="1020" height="1020" rx="230" fill="none" stroke="#ffffff" stroke-opacity="0.07" stroke-width="4"/>
+  <g transform="translate(-28 0)">
+    <path d="M330 256H478C650 256 750 372 750 512C750 652 650 768 478 768H330Z" fill="none" stroke="url(#mark)" stroke-width="88" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M440 428L536 512L440 596" fill="none" stroke="#eafff6" stroke-width="52" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M580 596H650" fill="none" stroke="#eafff6" stroke-width="52" stroke-linecap="round"/>
+  </g>
+</svg>

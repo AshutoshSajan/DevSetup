@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>DevSetup</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script>try{var t=localStorage.getItem("theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+</head>
+<body>
+<div id="app">
+  <aside>
+    <div class="brand"><img src="/logo.svg" alt="" width="28" height="28"><b>DevSetup</b></div><div id="sys" class="mu"></div>
+    <div class="mu" style="margin-top:auto">Theme</div>
+    <div id="theme" role="group" aria-label="Theme">
+      <button data-t="system" aria-pressed="true">System</button>
+      <button data-t="light" aria-pressed="false">Light</button>
+      <button data-t="dark" aria-pressed="false">Dark</button>
+    </div>
+  </aside>
+  <main>
+    <div><h1>What do you build?</h1><div class="mu">Pick one or more roles. The tool list follows your choice.</div></div>
+    <div id="roles" class="grid roles"></div>
+    <div class="bar"><h2>Choose your tools</h2>
+      <span class="ctl">
+        <input id="q" type="search" placeholder="Search tools" aria-label="Search tools">
+        <label><input id="showall" type="checkbox"> Show all</label>
+        <button id="all" class="b2">Select all</button> <button id="none" class="b2">Deselect all</button>
+      </span></div>
+    <div id="hint" class="mu"></div>
+    <div id="tools" class="grid"></div>
+    <footer><span id="sum" class="mu"></span><span id="warn" class="warn"></span>
+      <button class="bt" id="go" disabled>Review plan</button></footer>
+  </main>
+</div>
+<div id="modal" class="modal" hidden><div class="dlg">
+  <h2 id="mt">Review plan</h2>
+  <div id="mbody"></div>
+  <div id="note" class="mu" hidden>System packages are installing and cannot be stopped safely. Cancel takes effect when they finish.</div>
+  <pre id="log" hidden></pre>
+  <div class="mfoot"><button id="mcancel" class="b2">Cancel</button><button id="mgo" class="bt">Install</button></div>
+</div></div>
+<script type="module" src="/src/main.ts"></script>
+</body></html>

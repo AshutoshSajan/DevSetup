@@ -1,0 +1,146 @@
+# Tools are data, not code. Generated list; edit freely.
+# roles: role ids, or 'all' (always shown + pre-ticked) / 'any' (shown once any role is picked).
+# check: command on PATH that proves it is installed (apt/flatpak tools are also detected from dpkg/flatpak).
+roles:
+  - { id: web, name: "Frontend and web", description: "Node, browsers, API clients" }
+  - { id: backend, name: "Backend", description: "Languages, databases, Docker" }
+  - { id: mobile, name: "Mobile", description: "Android Studio, Flutter, ADB" }
+  - { id: systems, name: "Systems and low-level", description: "C/C++, Rust, debuggers" }
+  - { id: devops, name: "DevOps and cloud", description: "Docker, Kubernetes, Terraform" }
+  - { id: data, name: "Data and ML", description: "Python, Jupyter, R, SQL" }
+  - { id: ai, name: "AI-assisted dev", description: "Claude Code, Codex, OpenCode, Ollama" }
+  - { id: game, name: "Game dev", description: "Godot, Unity Hub, Blender" }
+  - { id: security, name: "Security", description: "nmap, Wireshark, Ghidra" }
+  - { id: dba, name: "Database admin", description: "SQL clients and servers" }
+  - { id: learner, name: "Student or beginner", description: "VS Code, Python, Git" }
+tools:
+  - { id: "git", name: "Git", group: "Essentials", roles: [all], method: { type: apt, package: "git" }, check: "git" }
+  - { id: "curl", name: "curl", group: "Essentials", roles: [all], method: { type: apt, package: "curl" }, check: "curl" }
+  - { id: "wget", name: "wget", group: "Essentials", roles: [all], method: { type: apt, package: "wget" }, check: "wget" }
+  - { id: "build-essential", name: "Build essentials (gcc, make)", group: "Essentials", roles: [all], method: { type: apt, package: "build-essential" }, check: "gcc" }
+  - { id: "unzip", name: "zip and unzip", group: "Essentials", roles: [all], method: { type: apt, package: "unzip" }, check: "unzip" }
+  - { id: "jq", name: "jq", group: "Essentials", roles: [all], method: { type: apt, package: "jq" }, check: "jq" }
+  - { id: "ripgrep", name: "ripgrep", group: "Essentials", roles: [all], method: { type: apt, package: "ripgrep" }, check: "rg" }
+  - { id: "fzf", name: "fzf", group: "Essentials", roles: [all], method: { type: apt, package: "fzf" }, check: "fzf" }
+  - { id: "htop", name: "htop", group: "Essentials", roles: [all], method: { type: apt, package: "htop" }, check: "htop" }
+  - { id: "flatpak", name: "Flatpak (for GUI apps)", group: "Essentials", roles: [all], method: { type: apt, package: "flatpak" }, check: "flatpak" }
+  - { id: "vscode", name: "Visual Studio Code", group: "Editors and IDEs", roles: [any], method: { type: flatpak, app_id: "com.visualstudio.code" }, requires: ["flatpak"] }
+  - { id: "vscodium", name: "VSCodium", group: "Editors and IDEs", roles: [any], method: { type: flatpak, app_id: "com.vscodium.codium" }, requires: ["flatpak"] }
+  - { id: "zed", name: "Zed", group: "Editors and IDEs", roles: [any], method: { type: flatpak, app_id: "dev.zed.Zed" }, check: "zed", requires: ["flatpak"] }
+  - { id: "sublime", name: "Sublime Text", group: "Editors and IDEs", roles: [any], method: { type: flatpak, app_id: "com.sublimetext.three" }, requires: ["flatpak"] }
+  - { id: "kate", name: "Kate", group: "Editors and IDEs", roles: [any], method: { type: apt, package: "kate" }, check: "kate" }
+  - { id: "neovim", name: "Neovim", group: "Editors and IDEs", roles: [any], method: { type: apt, package: "neovim" }, check: "nvim" }
+  - { id: "vim", name: "Vim", group: "Editors and IDEs", roles: [any], method: { type: apt, package: "vim" }, check: "vim" }
+  - { id: "intellij", name: "IntelliJ IDEA Community", group: "Editors and IDEs", roles: [backend], method: { type: flatpak, app_id: "com.jetbrains.IntelliJ-IDEA-Community" }, requires: ["flatpak"] }
+  - { id: "pycharm", name: "PyCharm Community", group: "Editors and IDEs", roles: [data, ai, learner], method: { type: flatpak, app_id: "com.jetbrains.PyCharm-Community" }, requires: ["flatpak"] }
+  - { id: "webstorm", name: "WebStorm", group: "Editors and IDEs", roles: [web], method: { type: flatpak, app_id: "com.jetbrains.WebStorm" }, requires: ["flatpak"] }
+  - { id: "goland", name: "GoLand", group: "Editors and IDEs", roles: [backend, devops], method: { type: flatpak, app_id: "com.jetbrains.GoLand" }, requires: ["flatpak"] }
+  - { id: "clion", name: "CLion", group: "Editors and IDEs", roles: [systems], method: { type: flatpak, app_id: "com.jetbrains.CLion" }, requires: ["flatpak"] }
+  - { id: "rustrover", name: "RustRover", group: "Editors and IDEs", roles: [systems], method: { type: flatpak, app_id: "com.jetbrains.RustRover" }, requires: ["flatpak"] }
+  - { id: "datagrip", name: "DataGrip", group: "Editors and IDEs", roles: [dba], method: { type: flatpak, app_id: "com.jetbrains.DataGrip" }, requires: ["flatpak"] }
+  - { id: "androidstudio", name: "Android Studio", group: "Editors and IDEs", roles: [mobile], method: { type: flatpak, app_id: "com.google.AndroidStudio" }, requires: ["flatpak"] }
+  - { id: "mise", name: "mise (version manager)", group: "Languages and runtimes", roles: [any], method: { type: script, url: "https://mise.run", uninstall: "rm -f \"${HOME:?}/.local/bin/mise\"" }, check: "mise" }
+  - { id: "node", name: "Node.js (via mise)", group: "Languages and runtimes", roles: [web, backend, mobile, ai, learner, devops], method: { type: mise, tool: "node" }, check: "node", requires: ["mise"] }
+  - { id: "pnpm", name: "pnpm", group: "Languages and runtimes", roles: [web, backend], method: { type: npm, package: "pnpm" }, check: "pnpm", requires: ["node"] }
+  - { id: "bun", name: "Bun", group: "Languages and runtimes", roles: [web, backend], method: { type: script, url: "https://bun.sh/install", uninstall: "rm -rf \"${HOME:?}/.bun\"" }, check: "bun" }
+  - { id: "deno", name: "Deno", group: "Languages and runtimes", roles: [web, backend], method: { type: script, url: "https://deno.land/install.sh", uninstall: "rm -rf \"${HOME:?}/.deno\"" }, check: "deno" }
+  - { id: "python", name: "Python (via mise)", group: "Languages and runtimes", roles: [backend, data, ai, security, learner, devops], method: { type: mise, tool: "python" }, check: "python", requires: ["mise"] }
+  - { id: "uv", name: "uv (Python packages)", group: "Languages and runtimes", roles: [backend, data, ai, learner], method: { type: script, url: "https://astral.sh/uv/install.sh", uninstall: "rm -f \"${HOME:?}/.local/bin/uv\" \"${HOME:?}/.local/bin/uvx\"" }, check: "uv" }
+  - { id: "pipx", name: "pipx", group: "Languages and runtimes", roles: [data, ai, security], method: { type: apt, package: "pipx" }, check: "pipx" }
+  - { id: "go", name: "Go (via mise)", group: "Languages and runtimes", roles: [backend, devops, systems], method: { type: mise, tool: "go" }, check: "go", requires: ["mise"] }
+  - { id: "rust", name: "Rust (rustup)", group: "Languages and runtimes", roles: [systems, backend, game], method: { type: script, url: "https://sh.rustup.rs", args: ["-y"], uninstall: "rustup self uninstall -y" }, check: "rustc" }
+  - { id: "java", name: "OpenJDK", group: "Languages and runtimes", roles: [backend, mobile], method: { type: apt, package: "default-jdk" }, check: "javac" }
+  - { id: "ruby", name: "Ruby (via mise)", group: "Languages and runtimes", roles: [web, backend], method: { type: mise, tool: "ruby" }, check: "ruby", requires: ["mise"] }
+  - { id: "php", name: "PHP", group: "Languages and runtimes", roles: [web, backend], method: { type: apt, package: "php-cli" }, check: "php" }
+  - { id: "composer", name: "Composer", group: "Languages and runtimes", roles: [web, backend], method: { type: apt, package: "composer" }, check: "composer" }
+  - { id: "zig", name: "Zig (via mise)", group: "Languages and runtimes", roles: [systems], method: { type: mise, tool: "zig" }, check: "zig", requires: ["mise"] }
+  - { id: "flutter", name: "Flutter (via mise)", group: "Languages and runtimes", roles: [mobile], method: { type: mise, tool: "flutter" }, check: "flutter", requires: ["mise"] }
+  - { id: "r", name: "R", group: "Languages and runtimes", roles: [data], method: { type: apt, package: "r-base" }, check: "R" }
+  - { id: "clang", name: "Clang", group: "Systems and debugging", roles: [systems], method: { type: apt, package: "clang" }, check: "clang" }
+  - { id: "cmake", name: "CMake", group: "Systems and debugging", roles: [systems], method: { type: apt, package: "cmake" }, check: "cmake" }
+  - { id: "ninja", name: "Ninja", group: "Systems and debugging", roles: [systems], method: { type: apt, package: "ninja-build" }, check: "ninja" }
+  - { id: "gdb", name: "GDB", group: "Systems and debugging", roles: [systems, game], method: { type: apt, package: "gdb" }, check: "gdb" }
+  - { id: "valgrind", name: "Valgrind", group: "Systems and debugging", roles: [systems], method: { type: apt, package: "valgrind" }, check: "valgrind" }
+  - { id: "strace", name: "strace", group: "Systems and debugging", roles: [systems, devops], method: { type: apt, package: "strace" }, check: "strace" }
+  - { id: "qemu", name: "QEMU (x86)", group: "Systems and debugging", roles: [systems], method: { type: apt, package: "qemu-system-x86" }, check: "qemu-system-x86_64" }
+  - { id: "docker", name: "Docker Engine", group: "Containers and cloud", roles: [web, backend, devops, data, ai, security, dba], method: { type: apt, package: "docker.io" }, check: "docker" }
+  - { id: "docker-compose", name: "Docker Compose", group: "Containers and cloud", roles: [web, backend, devops, data, ai, security, dba], method: { type: apt, package: "docker-compose" }, check: "docker-compose", requires: ["docker"] }
+  - { id: "podman", name: "Podman", group: "Containers and cloud", roles: [devops], method: { type: apt, package: "podman" }, check: "podman" }
+  - { id: "podman-desktop", name: "Podman Desktop", group: "Containers and cloud", roles: [devops], method: { type: flatpak, app_id: "io.podman_desktop.PodmanDesktop" }, requires: ["flatpak"] }
+  - { id: "kubectl", name: "kubectl", group: "Containers and cloud", roles: [devops], method: { type: mise, tool: "kubectl" }, check: "kubectl", requires: ["mise"] }
+  - { id: "helm", name: "Helm", group: "Containers and cloud", roles: [devops], method: { type: mise, tool: "helm" }, check: "helm", requires: ["mise"] }
+  - { id: "k9s", name: "k9s", group: "Containers and cloud", roles: [devops], method: { type: mise, tool: "k9s" }, check: "k9s", requires: ["mise"] }
+  - { id: "kind", name: "kind", group: "Containers and cloud", roles: [devops], method: { type: mise, tool: "kind" }, check: "kind", requires: ["mise"] }
+  - { id: "terraform", name: "Terraform", group: "Containers and cloud", roles: [devops], method: { type: mise, tool: "terraform" }, check: "terraform", requires: ["mise"] }
+  - { id: "opentofu", name: "OpenTofu", group: "Containers and cloud", roles: [devops], method: { type: mise, tool: "opentofu" }, check: "tofu", requires: ["mise"] }
+  - { id: "ansible", name: "Ansible", group: "Containers and cloud", roles: [devops], method: { type: apt, package: "ansible" }, check: "ansible" }
+  - { id: "awscli", name: "AWS CLI", group: "Containers and cloud", roles: [devops], method: { type: apt, package: "awscli" }, check: "aws" }
+  - { id: "psql", name: "PostgreSQL client", group: "Databases", roles: [backend, dba, data], method: { type: apt, package: "postgresql-client" }, check: "psql" }
+  - { id: "redis-cli", name: "Redis CLI", group: "Databases", roles: [backend, dba], method: { type: apt, package: "redis-tools" }, check: "redis-cli" }
+  - { id: "mariadb-client", name: "MariaDB client", group: "Databases", roles: [backend, dba], method: { type: apt, package: "mariadb-client" }, check: "mariadb" }
+  - { id: "sqlite", name: "SQLite", group: "Databases", roles: [any], method: { type: apt, package: "sqlite3" }, check: "sqlite3" }
+  - { id: "sqlitebrowser", name: "DB Browser for SQLite", group: "Databases", roles: [dba, data, learner], method: { type: apt, package: "sqlitebrowser" }, check: "sqlitebrowser" }
+  - { id: "dbeaver", name: "DBeaver Community", group: "Databases", roles: [backend, dba, data], method: { type: flatpak, app_id: "io.dbeaver.DBeaverCommunity" }, requires: ["flatpak"] }
+  - { id: "beekeeper", name: "Beekeeper Studio", group: "Databases", roles: [web, backend, dba], method: { type: flatpak, app_id: "io.beekeeperstudio.Studio" }, requires: ["flatpak"] }
+  - { id: "postgres-server", name: "PostgreSQL server", group: "Databases", roles: [backend, dba], method: { type: apt, package: "postgresql" } }
+  - { id: "mariadb-server", name: "MariaDB server", group: "Databases", roles: [dba], method: { type: apt, package: "mariadb-server" } }
+  - { id: "redis-server", name: "Redis server", group: "Databases", roles: [dba], method: { type: apt, package: "redis-server" } }
+  - { id: "postman", name: "Postman", group: "API and web", roles: [web, backend, mobile], method: { type: flatpak, app_id: "com.getpostman.Postman" }, requires: ["flatpak"] }
+  - { id: "insomnia", name: "Insomnia", group: "API and web", roles: [web, backend], method: { type: flatpak, app_id: "rest.insomnia.Insomnia" }, requires: ["flatpak"] }
+  - { id: "bruno", name: "Bruno", group: "API and web", roles: [web, backend], method: { type: flatpak, app_id: "com.usebruno.Bruno" }, requires: ["flatpak"] }
+  - { id: "httpie", name: "HTTPie", group: "API and web", roles: [web, backend], method: { type: apt, package: "httpie" }, check: "http" }
+  - { id: "mkcert", name: "mkcert", group: "API and web", roles: [web], method: { type: apt, package: "mkcert" }, check: "mkcert" }
+  - { id: "firefox", name: "Firefox ESR", group: "API and web", roles: [web], method: { type: apt, package: "firefox-esr" }, check: "firefox-esr" }
+  - { id: "chromium", name: "Chromium", group: "API and web", roles: [web], method: { type: apt, package: "chromium" }, check: "chromium" }
+  - { id: "chrome", name: "Google Chrome", group: "API and web", roles: [web], method: { type: flatpak, app_id: "com.google.Chrome" }, requires: ["flatpak"] }
+  - { id: "adb", name: "Android platform tools (adb)", group: "Mobile", roles: [mobile], method: { type: apt, package: "adb" }, check: "adb" }
+  - { id: "scrcpy", name: "scrcpy (screen mirroring)", group: "Mobile", roles: [mobile], method: { type: apt, package: "scrcpy" }, check: "scrcpy" }
+  - { id: "claude", name: "Claude Code", group: "AI harnesses", roles: [ai], method: { type: script, url: "https://claude.ai/install.sh", uninstall: "rm -f \"${HOME:?}/.local/bin/claude\" && rm -rf \"${HOME:?}/.local/share/claude\"" }, check: "claude" }
+  - { id: "opencode", name: "OpenCode", group: "AI harnesses", roles: [ai], method: { type: script, url: "https://opencode.ai/install", uninstall: "rm -rf \"${HOME:?}/.opencode\"" }, check: "opencode" }
+  - { id: "codex", name: "Codex CLI", group: "AI harnesses", roles: [ai], method: { type: npm, package: "@openai/codex" }, check: "codex", requires: ["node"] }
+  - { id: "gemini", name: "Gemini CLI", group: "AI harnesses", roles: [ai], method: { type: npm, package: "@google/gemini-cli" }, check: "gemini", requires: ["node"] }
+  - { id: "aider", name: "Aider", group: "AI harnesses", roles: [ai], method: { type: pipx, package: "aider-chat" }, check: "aider", requires: ["pipx"] }
+  - { id: "ollama", name: "Ollama (local models)", group: "AI harnesses", roles: [ai, data], method: { type: script, url: "https://ollama.com/install.sh" }, check: "ollama" }
+  - { id: "jupyterlab", name: "JupyterLab", group: "Data and ML", roles: [data], method: { type: pipx, package: "jupyterlab" }, check: "jupyter-lab", requires: ["pipx"] }
+  - { id: "nvtop", name: "nvtop (GPU monitor)", group: "Data and ML", roles: [data, ai, game], method: { type: apt, package: "nvtop" }, check: "nvtop" }
+  - { id: "godot", name: "Godot", group: "Game dev", roles: [game], method: { type: flatpak, app_id: "org.godotengine.Godot" }, requires: ["flatpak"] }
+  - { id: "unityhub", name: "Unity Hub", group: "Game dev", roles: [game], method: { type: flatpak, app_id: "com.unity.UnityHub" }, requires: ["flatpak"] }
+  - { id: "blender", name: "Blender", group: "Game dev", roles: [game], method: { type: flatpak, app_id: "org.blender.Blender" }, requires: ["flatpak"] }
+  - { id: "vulkan-tools", name: "Vulkan tools", group: "Game dev", roles: [game], method: { type: apt, package: "vulkan-tools" }, check: "vulkaninfo" }
+  - { id: "nmap", name: "nmap", group: "Security", roles: [security], method: { type: apt, package: "nmap" }, check: "nmap" }
+  - { id: "wireshark", name: "Wireshark", group: "Security", roles: [security, devops], method: { type: flatpak, app_id: "org.wireshark.Wireshark" }, requires: ["flatpak"] }
+  - { id: "ghidra", name: "Ghidra", group: "Security", roles: [security], method: { type: flatpak, app_id: "org.ghidra_sre.Ghidra" }, requires: ["flatpak"] }
+  - { id: "john", name: "John the Ripper", group: "Security", roles: [security], method: { type: apt, package: "john" }, check: "john" }
+  - { id: "hashcat", name: "hashcat", group: "Security", roles: [security], method: { type: apt, package: "hashcat" }, check: "hashcat" }
+  - { id: "tcpdump", name: "tcpdump", group: "Security", roles: [security, devops], method: { type: apt, package: "tcpdump" }, check: "tcpdump" }
+  - { id: "whois", name: "whois", group: "Security", roles: [security], method: { type: apt, package: "whois" }, check: "whois" }
+  - { id: "dig", name: "dig (DNS tools)", group: "Security", roles: [security, devops], method: { type: apt, package: "bind9-dnsutils" }, check: "dig" }
+  - { id: "sqlmap", name: "sqlmap", group: "Security", roles: [security], method: { type: apt, package: "sqlmap" }, check: "sqlmap" }
+  - { id: "gh", name: "GitHub CLI", group: "Git and hosting", roles: [any], method: { type: apt, package: "gh" }, check: "gh" }
+  - { id: "git-lfs", name: "Git LFS", group: "Git and hosting", roles: [any], method: { type: apt, package: "git-lfs" }, check: "git-lfs" }
+  - { id: "github-desktop", name: "GitHub Desktop", group: "Git and hosting", roles: [any], method: { type: flatpak, app_id: "io.github.shiftey.Desktop" }, requires: ["flatpak"] }
+  - { id: "meld", name: "Meld (diff and merge)", group: "Git and hosting", roles: [any], method: { type: apt, package: "meld" }, check: "meld" }
+  - { id: "lazygit", name: "lazygit", group: "Git and hosting", roles: [any], method: { type: mise, tool: "lazygit" }, check: "lazygit", requires: ["mise"] }
+  - { id: "tig", name: "tig", group: "Git and hosting", roles: [any], method: { type: apt, package: "tig" }, check: "tig" }
+  - { id: "delta", name: "delta (better git diff)", group: "Git and hosting", roles: [any], method: { type: apt, package: "git-delta" }, check: "delta" }
+  - { id: "zsh", name: "zsh", group: "Shell and terminal", roles: [any], method: { type: apt, package: "zsh" }, check: "zsh" }
+  - { id: "zsh-autosuggestions", name: "zsh autosuggestions", group: "Shell and terminal", roles: [any], method: { type: apt, package: "zsh-autosuggestions" } }
+  - { id: "zsh-syntax-highlighting", name: "zsh syntax highlighting", group: "Shell and terminal", roles: [any], method: { type: apt, package: "zsh-syntax-highlighting" } }
+  - { id: "fish", name: "fish", group: "Shell and terminal", roles: [any], method: { type: apt, package: "fish" }, check: "fish" }
+  - { id: "starship", name: "Starship prompt", group: "Shell and terminal", roles: [any], method: { type: apt, package: "starship" }, check: "starship" }
+  - { id: "tmux", name: "tmux", group: "Shell and terminal", roles: [any], method: { type: apt, package: "tmux" }, check: "tmux" }
+  - { id: "bat", name: "bat", group: "Shell and terminal", roles: [any], method: { type: apt, package: "bat" }, check: "batcat" }
+  - { id: "eza", name: "eza", group: "Shell and terminal", roles: [any], method: { type: apt, package: "eza" }, check: "eza" }
+  - { id: "fd", name: "fd", group: "Shell and terminal", roles: [any], method: { type: apt, package: "fd-find" }, check: "fdfind" }
+  - { id: "zoxide", name: "zoxide", group: "Shell and terminal", roles: [any], method: { type: apt, package: "zoxide" }, check: "zoxide" }
+  - { id: "btop", name: "btop", group: "Shell and terminal", roles: [any], method: { type: apt, package: "btop" }, check: "btop" }
+  - { id: "fastfetch", name: "fastfetch", group: "Shell and terminal", roles: [any], method: { type: apt, package: "fastfetch" }, check: "fastfetch" }
+  - { id: "ncdu", name: "ncdu", group: "Shell and terminal", roles: [any], method: { type: apt, package: "ncdu" }, check: "ncdu" }
+  - { id: "direnv", name: "direnv", group: "Shell and terminal", roles: [any], method: { type: apt, package: "direnv" }, check: "direnv" }
+  - { id: "shellcheck", name: "ShellCheck", group: "Shell and terminal", roles: [any], method: { type: apt, package: "shellcheck" }, check: "shellcheck" }
+  - { id: "kitty", name: "kitty", group: "Shell and terminal", roles: [any], method: { type: apt, package: "kitty" }, check: "kitty" }
+  - { id: "alacritty", name: "Alacritty", group: "Shell and terminal", roles: [any], method: { type: apt, package: "alacritty" }, check: "alacritty" }
+  - { id: "obsidian", name: "Obsidian", group: "Notes and fonts", roles: [any], method: { type: flatpak, app_id: "md.obsidian.Obsidian" }, requires: ["flatpak"] }
+  - { id: "fonts-firacode", name: "Fira Code font", group: "Notes and fonts", roles: [any], method: { type: apt, package: "fonts-firacode" } }
+  - { id: "fonts-jetbrains-mono", name: "JetBrains Mono font", group: "Notes and fonts", roles: [any], method: { type: apt, package: "fonts-jetbrains-mono" } }
+  - { id: "thonny", name: "Thonny (beginner Python IDE)", group: "Learning", roles: [learner], method: { type: apt, package: "thonny" }, check: "thonny" }

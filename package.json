@@ -1,0 +1,22 @@
+{
+  "name": "devsetup",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "tauri": "tauri",
+    "icons": "tauri icon docs/app-icon.png",
+    "pin": "node scripts/pin-scripts.mjs",
+    "pin:check": "node scripts/pin-scripts.mjs --check"
+  },
+  "dependencies": {
+    "@tauri-apps/api": "^2"
+  },
+  "devDependencies": {
+    "@tauri-apps/cli": "^2",
+    "typescript": "^5",
+    "vite": "^5"
+  }
+}
