@@ -11,7 +11,7 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 ## Phase 1: a real installer
 - [x] Install executor: one `pkexec` helper for all apt work, user-level steps for Flatpak, mise, npm, pipx and install scripts, live logs per step
 - [x] State file: remembers what DevSetup installed; only those tools can be removed
-- [~] Plan review screen: lists installs, removals and left-alone tools. Still to add: exact commands, download size, disk space needed
+- [x] Plan review screen: installs, removals and left-alone tools, the exact commands in execution order (built from the same code that runs them), apt package sizes, and a copy button. Pre-flight checks add the total download and disk estimate
 - [x] Pre-flight checks in the review screen: supported distro, pkexec, curl, reachable hosts, free disk space, apt package lookup with size estimate
 - [ ] Secure Boot warning (needed once driver tools exist, Phase 3)
 - [x] Cancel a running install (stops user-level steps; the root apt step finishes first, since stopping it is unsafe) and retry failed or cancelled steps, one by one or all at once
@@ -21,9 +21,9 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 - [ ] Unit and integration tests for plan and executor
 
 ## Phase 2: features that set it apart
-- [ ] Save and share setups: export the selection as `devsetup.yaml`, import from a file or GitHub link
-- [ ] Scan this machine: detect installed tools and generate a setup file (back up before a reinstall)
-- [ ] Cleaner tab: `apt autoremove`, Docker prune, unused Flatpak runtimes, npm/pip/cargo caches, with the space each frees shown first
+- [x] Save and share setups: export the selection as `devsetup.yaml` (file or copied text), load it from a file, pasted text or a GitHub link (`owner/repo`, repo, blob or gist URL). Loading adds to your selection; unknown tools are reported
+- [x] Scan this machine: detect which tools from the list are installed, suggest roles, and save the result as a setup file (back up before a reinstall). Flatpak apps, npm globals and pipx apps outside the list are recorded as comments. Still to do: scan apt manual packages and mise tools
+- [x] Cleaner tab: unused apt packages (with the list shown first), apt download cache, Docker prune (volumes never touched) and unused images, unused Flatpak runtimes, and npm, pip, mise and Cargo caches, with the estimated space each frees. Still to do: journal logs, Flatpak sizes, per-folder build caches
 - [ ] Update all: apt, Flatpak, mise, npm globals and script-installed tools in one go
 - [ ] Doctor: checks tools run, PATH is right, user is in the `docker` group, and suggests fixes
 

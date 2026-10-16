@@ -7,6 +7,10 @@
 <div id="app">
   <aside>
     <div class="brand"><img src="/logo.svg" alt="" width="28" height="28"><b>DevSetup</b></div><div id="sys" class="mu"></div>
+    <nav id="nav" aria-label="Sections">
+      <button data-v="setup" aria-current="page">Setup</button>
+      <button data-v="clean">Cleaner</button>
+    </nav>
     <div class="mu" style="margin-top:auto">Theme</div>
     <div id="theme" role="group" aria-label="Theme">
       <button data-t="system" aria-pressed="true">System</button>
@@ -14,19 +18,27 @@
       <button data-t="dark" aria-pressed="false">Dark</button>
     </div>
   </aside>
-  <main>
+  <main id="v-setup">
     <div><h1>What do you build?</h1><div class="mu">Pick one or more roles. The tool list follows your choice.</div></div>
     <div id="roles" class="grid roles"></div>
     <div class="bar"><h2>Choose your tools</h2>
       <span class="ctl">
         <input id="q" type="search" placeholder="Search tools" aria-label="Search tools">
         <label><input id="showall" type="checkbox"> Show all</label>
+        <button id="scan" class="b2">Scan this machine…</button> <button id="save" class="b2">Save setup…</button> <button id="load" class="b2">Load setup…</button>
         <button id="all" class="b2">Select all</button> <button id="none" class="b2">Deselect all</button>
       </span></div>
     <div id="hint" class="mu"></div>
+    <div id="toast" class="mu" role="status"></div>
     <div id="tools" class="grid"></div>
     <footer><span id="sum" class="mu"></span><span id="warn" class="warn"></span>
       <button class="bt" id="go" disabled>Review plan</button></footer>
+  </main>
+  <main id="v-clean" hidden>
+    <div><h1>Cleaner</h1><div class="mu">Free disk space. Sizes are estimates, and nothing is deleted until you press Clean.</div></div>
+    <div class="bar"><span id="clean-sum" class="mu"></span><span class="ctl"><button id="clean-rescan" class="b2">Rescan</button></span></div>
+    <div id="clean-list" class="grid"></div>
+    <footer><span id="clean-note" class="mu"></span><button class="bt" id="clean-go" disabled>Clean selected</button></footer>
   </main>
 </div>
 <div id="modal" class="modal" hidden><div class="dlg">

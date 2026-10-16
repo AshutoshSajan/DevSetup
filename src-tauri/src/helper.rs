@@ -21,7 +21,22 @@ fn apt(args: &[&str]) -> bool {
         .unwrap_or(false)
 }
 
+/// Cleaner operations that need root. Only these fixed operations exist; arguments are never passed on to apt.
+fn clean(ops: &[String]) -> i32 {
+    if ops.iter().any(|o| o != "autoremove" && o != "apt-cache") {
+        eprintln!("unknown clean operation");
+        return 2;
+    }
+    let mut rc = 0;
+    for op in ops {
+        let ok = if op == "autoremove" { apt(&["autoremove", "-y"]) } else { apt(&["clean"]) };
+        if !ok { rc = 1; }
+    }
+    rc
+}
+
 pub fn run(args: &[String]) -> i32 {
+    if args.first().map(String::as_str) == Some("clean") { return clean(&args[1..]); }
     if args.first().map(String::as_str) != Some("apt") { eprintln!("unknown helper command"); return 2; }
     let m = manifest::load();
     let (mut inst, mut rem): (Vec<String>, Vec<String>) = (vec![], vec![]);
@@ -61,5 +76,6 @@ mod tests {
         assert_eq!(run(&["apt".into(), "+no-such-tool".into()]), 2);
         assert_eq!(run(&["apt".into(), "+vscode".into()]), 2); // flatpak tool
         assert_eq!(run(&["rm".into()]), 2);
+        assert_eq!(run(&["clean".into(), "autoremove".into(), "rm".into()]), 2); // nothing runs if any operation is unknown
     }
 }

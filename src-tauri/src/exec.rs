@@ -11,21 +11,21 @@ use std::process::{Command, Stdio};
 use std::sync::atomic::{AtomicBool, AtomicI32, Ordering};
 use tauri::{AppHandle, Emitter};
 
-static RUNNING: AtomicBool = AtomicBool::new(false);
-static CANCEL: AtomicBool = AtomicBool::new(false);
+pub(crate) static RUNNING: AtomicBool = AtomicBool::new(false);
+pub(crate) static CANCEL: AtomicBool = AtomicBool::new(false);
 /// Process group of the user-level step that is running now (0 = none).
 static CHILD_PGID: AtomicI32 = AtomicI32::new(0);
 
 #[derive(Clone, Serialize)] struct Log { id: String, stream: &'static str, line: String }
 #[derive(Clone, Serialize)] struct Step { id: String, state: &'static str, message: String }
-#[derive(Clone, Serialize)] struct Done { ok: bool, failed: usize, cancelled: bool }
+#[derive(Clone, Serialize)] pub(crate) struct Done { pub ok: bool, pub failed: usize, pub cancelled: bool }
 
-fn cancelled() -> bool { CANCEL.load(Ordering::SeqCst) }
+pub(crate) fn cancelled() -> bool { CANCEL.load(Ordering::SeqCst) }
 
-fn log(app: &AppHandle, id: &str, stream: &'static str, line: &str) {
+pub(crate) fn log(app: &AppHandle, id: &str, stream: &'static str, line: &str) {
     let _ = app.emit("run-log", Log { id: id.into(), stream, line: line.into() });
 }
-fn step(app: &AppHandle, id: &str, state: &'static str, message: &str) {
+pub(crate) fn step(app: &AppHandle, id: &str, state: &'static str, message: &str) {
     let _ = app.emit("run-step", Step { id: id.into(), state, message: message.into() });
 }
 
@@ -61,7 +61,7 @@ fn pump<R: Read + Send + 'static>(app: &AppHandle, id: &str, stream: &'static st
 
 /// Runs a command, streaming its output to the UI. Returns true on exit code 0.
 /// `group` = run in its own process group so cancel can stop it (user-level steps only).
-fn stream(app: &AppHandle, id: &str, mut cmd: Command, group: bool) -> bool {
+pub(crate) fn stream(app: &AppHandle, id: &str, mut cmd: Command, group: bool) -> bool {
     if group && cancelled() { return false; }
     cmd.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::piped());
     if group { cmd.process_group(0); }
@@ -93,7 +93,7 @@ fn child_path() -> String {
 }
 
 /// `sh -c <script> sh <args...>`: values reach the script as "$1", "$2", never spliced into the text.
-fn sh(script: &str, args: &[String]) -> Command {
+pub(crate) fn sh(script: &str, args: &[String]) -> Command {
     let mut c = Command::new("sh");
     c.arg("-c").arg(script).arg("sh").args(args).env("PATH", child_path());
     c
@@ -117,7 +117,7 @@ fi
 rm -f "$tmp"
 exit $rc"#;
 
-fn install_cmd(t: &Tool) -> Option<Command> {
+pub(crate) fn install_cmd(t: &Tool) -> Option<Command> {
     Some(match &t.method {
         Method::Apt { .. } => return None,
         Method::Mise { tool, version } => {
@@ -151,7 +151,7 @@ mise uninstall --all "$1" || true
 mise reshim
 if mise ls --installed "$1" 2>/dev/null | grep -q .; then echo "$1 is still installed" >&2; exit 1; fi"#;
 
-fn remove_cmd(t: &Tool) -> Option<Command> {
+pub(crate) fn remove_cmd(t: &Tool) -> Option<Command> {
     Some(match &t.method {
         Method::Apt { .. } => return None, // handled by the root helper
         Method::Flatpak { app_id } => sh("flatpak uninstall --user -y --noninteractive \"$1\"", &[app_id.clone()]),
@@ -179,7 +179,7 @@ fn split_removals(m: &Manifest, remove: &[Tool], to_install: &[Tool], apt: &Hash
 }
 
 /// Tools that depend on others come first, so nothing is removed while something still needs it.
-fn removal_order(set: &[Tool]) -> Vec<Tool> {
+pub(crate) fn removal_order(set: &[Tool]) -> Vec<Tool> {
     fn visit(t: &Tool, set: &[Tool], seen: &mut HashSet<String>, out: &mut Vec<Tool>) {
         if !seen.insert(t.id.clone()) { return; }
         for r in &t.requires { if let Some(d) = set.iter().find(|x| &x.id == r) { visit(d, set, seen, out); } }
@@ -204,21 +204,54 @@ pub(crate) fn resolve(m: &Manifest, ids: &[String], apt: &HashSet<String>) -> Ve
     out
 }
 
+/// Quotes an argument for display, the way a shell would need it.
+fn quote(a: &str) -> String {
+    if !a.is_empty() && a.chars().all(|c| c.is_ascii_alphanumeric() || "@._/:=+-".contains(c)) { a.to_string() }
+    else { format!("'{}'", a.replace('\'', "'\\''")) }
+}
+
+/// Human-readable form of a command, built from the very Command that will run, so the review cannot drift
+/// from what executes. For `sh -c script sh args...` the positional arguments are substituted into the script.
+pub(crate) fn render(cmd: &Command) -> String {
+    let args: Vec<String> = cmd.get_args().map(|a| a.to_string_lossy().into_owned()).collect();
+    if cmd.get_program() == "sh" && args.len() >= 3 && args[0] == "-c" {
+        let mut script = args[1].clone();
+        for (i, a) in args[3..].iter().enumerate() { script = script.replace(&format!("\"${}\"", i + 1), &quote(a)); }
+        return script;
+    }
+    let mut parts = vec![cmd.get_program().to_string_lossy().into_owned()];
+    parts.extend(args.iter().map(|a| quote(a)));
+    parts.join(" ")
+}
+
+/// Everything a run will do, decided in one place so the review screen and the executor agree.
+pub(crate) struct Planned {
+    pub to_install: Vec<Tool>,
+    pub candidates: Vec<Tool>,
+    pub to_remove: Vec<Tool>,
+    pub blocked: Vec<(Tool, String)>,
+}
+
+pub(crate) fn plan_steps(m: &Manifest, apt: &HashSet<String>, managed: &HashSet<String>, install: &[String], remove: &[String]) -> Planned {
+    let to_install = resolve(m, install, apt);
+    // Safety: only tools DevSetup installed itself can be removed.
+    let candidates: Vec<Tool> = remove.iter().filter(|id| managed.contains(id.as_str())).filter_map(|id| m.tools.iter().find(|t| &t.id == id).cloned()).collect();
+    // A tool that another remaining tool needs is kept.
+    let (to_remove, blocked) = split_removals(m, &candidates, &to_install, apt);
+    Planned { to_install, candidates, to_remove, blocked }
+}
+
 fn run(app: &AppHandle, install: Vec<String>, remove: Vec<String>, strict: bool) -> usize {
     let m = manifest::load();
     let apt = system::apt_installed();
     let mut st = state::load();
     let mut failed = 0;
 
-    let to_install = resolve(&m, &install, &apt);
     // Safety: only tools DevSetup installed itself can be removed.
     let managed: HashSet<String> = st.managed.iter().cloned().collect();
-    let candidates: Vec<Tool> = remove.iter().filter(|id| managed.contains(id.as_str())).filter_map(|id| m.tools.iter().find(|t| &t.id == id).cloned()).collect();
+    let Planned { to_install, candidates, to_remove, blocked } = plan_steps(&m, &apt, &managed, &install, &remove);
 
     for t in to_install.iter().chain(candidates.iter()) { step(app, &t.id, "queued", ""); }
-
-    // A tool that another remaining tool needs is kept.
-    let (to_remove, blocked) = split_removals(&m, &candidates, &to_install, &apt);
     for (t, by) in &blocked {
         log(app, &t.id, "stderr", &format!("{} was not removed because {} needs it.", t.name, by));
         step(app, &t.id, "skipped", &format!("needed by {by}"));
@@ -374,5 +407,24 @@ mod tests {
         let codex = tool("codex", &["node"], Method::Npm { package: "x".into(), version: None });
         let order: Vec<String> = removal_order(&[node, codex]).into_iter().map(|t| t.id).collect();
         assert_eq!(order, vec!["codex", "node"]);
+    }
+
+    #[test]
+    fn render_substitutes_positional_arguments() {
+        assert_eq!(render(&sh("mise use --global \"$1\"", &["node@lts".to_string()])), "mise use --global node@lts");
+        assert_eq!(render(&sh("pipx install \"$1\"", &["a b".to_string()])), "pipx install 'a b'");
+        let mut c = Command::new("pkexec");
+        c.arg("--helper").arg("+git");
+        assert_eq!(render(&c), "pkexec --helper +git");
+    }
+
+    #[test]
+    fn plan_adds_requirements_in_install_order() {
+        let a = tool("a", &[], Method::Apt { package: "pkg-a".into() });
+        let b = tool("b", &["a"], Method::Apt { package: "pkg-b".into() });
+        let m = Manifest { roles: vec![], tools: vec![b.clone(), a.clone()] };
+        let pl = plan_steps(&m, &HashSet::new(), &HashSet::new(), &["b".to_string()], &[]);
+        let ids: Vec<&str> = pl.to_install.iter().map(|t| t.id.as_str()).collect();
+        assert_eq!(ids, vec!["a", "b"]);
     }
 }
