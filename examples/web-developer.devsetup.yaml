@@ -1,0 +1,26 @@
+# Example setup file. In DevSetup choose Load setup, then open this file (or fetch it from GitHub).
+version: 1
+name: Web developer with AI tools
+roles:
+- web
+- ai
+tools:
+- git
+- curl
+- build-essential
+- jq
+- ripgrep
+- fzf
+- htop
+- flatpak
+- mise
+- node
+- pnpm
+- docker
+- docker-compose
+- vscode
+- gh
+- zsh
+- tmux
+- claude
+- codex
