@@ -12,7 +12,7 @@ h1{margin:0;font-size:24px}h2{margin:0;font-size:18px}.mu{color:var(--mu);font-s
 .card h3{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu)}
 .row{display:flex;gap:8px;align-items:center;padding:5px 0}.row .tag{margin-left:auto;font-size:12px;color:var(--mu)}
 .bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.ctl{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-input[type=search]{background:var(--card);border:1px solid var(--bd);color:var(--tx);border-radius:6px;padding:7px 10px;font:inherit}
+input[type=search],input[type=text],textarea{background:var(--card);border:1px solid var(--bd);color:var(--tx);border-radius:6px;padding:7px 10px;font:inherit}
 button{font:inherit;border-radius:6px;padding:8px 14px;cursor:pointer}.b2{background:none;color:var(--tx);border:1px solid var(--bd)}
 .bt{background:var(--ac);color:var(--acfg);border:0;font-weight:600}.bt:disabled{opacity:.4;cursor:not-allowed}
 footer{margin-top:auto;display:flex;gap:16px;align-items:center}footer .bt{margin-left:auto}.warn{color:var(--warn);font-size:12px}
@@ -26,3 +26,7 @@ pre#log{background:var(--side);border:1px solid var(--bd);border-radius:8px;padd
 .step{display:flex;gap:8px;padding:3px 0}.step .st{margin-left:auto;font-size:12px;color:var(--mu)}.st.done{color:var(--ac)}.st.failed,.st.fail{color:var(--err)}.st.ok{color:var(--ac)}.st.warn{color:var(--warn)}.step .st{text-align:right}
 .mini{padding:2px 10px;font-size:12px;margin-left:8px}
 .brand{display:flex;align-items:center;gap:10px;font-size:15px}
+.cmd{margin:6px 0 10px}.cmd pre{margin:4px 0;padding:8px 10px;background:var(--side);border:1px solid var(--bd);border-radius:6px;font:12px ui-monospace,monospace;white-space:pre-wrap;overflow-x:auto}details summary{cursor:pointer}
+textarea{width:100%;min-height:90px;box-sizing:border-box;font:12px ui-monospace,monospace}.btns{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.dlg input[type=text]{flex:1;min-width:200px}
+#nav{display:flex;flex-direction:column;gap:4px;margin-top:16px}#nav button{text-align:left;background:none;border:0;color:var(--mu);padding:8px 10px;border-radius:6px}#nav button[aria-current=page]{background:var(--card);color:var(--tx)}
+.card details{margin-top:6px}.card details pre{margin:4px 0 0;padding:8px 10px;background:var(--side);border:1px solid var(--bd);border-radius:6px;font:12px ui-monospace,monospace;white-space:pre-wrap}
