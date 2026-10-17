@@ -301,12 +301,45 @@ fn deps_audit_is_pinned_and_off_round() {
     // Both files must pin the same scanner binary (drift is the failure mode).
     must_have(&script, "scripts/deps.sh", "OSV_VERSION=v2.7.0");
     must_have(&script, "scripts/deps.sh", sha);
-    // Scans both lockfiles; node audit; pin staleness.
+    // Scans both lockfiles through the reviewed exemption file; npm audit
+    // (prod scope) and pin staleness round it out.
+    must_have(&workflow, "deps-audit.yml", "--config=.osv-scanner.toml");
     must_have(&workflow, "deps-audit.yml", "--lockfile=package-lock.json");
     must_have(&workflow, "deps-audit.yml", "--lockfile=src-tauri/Cargo.lock");
     must_have(&workflow, "deps-audit.yml", "npm audit --omit=dev");
     must_have(&workflow, "deps-audit.yml", "node scripts/pin-scripts.mjs --check");
+    must_have(&script, "scripts/deps.sh", "--config=.osv-scanner.toml");
     script_has_gate(&script);
+}
+
+/// Exemptions are data with a receipt: version-scoped so they lapse when the
+/// package moves, each with a reason, and mirrored by the CONVENTIONS policy
+/// (an unsound exemption is a violation, not a bypass).
+#[test]
+fn osv_exemptions_are_scoped_and_reasoned() {
+    let cfg = rd(".osv-scanner.toml");
+
+    for package in ["glib", "proc-macro-error", "unsafe-libyaml", "vite", "esbuild"] {
+        must_have(&cfg, ".osv-scanner.toml", &format!("name = \"{package}\""));
+    }
+    // Every entry is scoped to the exact vulnerable version and carries a
+    // reason (count one `version =` and one `reason =` per [[PackageOverrides]]).
+    let entries = cfg.match_indices("[[PackageOverrides]]").count();
+    assert_eq!(
+        entries,
+        5,
+        "expected 5 documented overrides in .osv-scanner.toml, found {entries} - every exemption change is a reviewed PR"
+    );
+    assert_eq!(cfg.matches("version = \"").count(), 5, "each override must be version-scoped");
+    assert_eq!(cfg.matches("reason = \"").count(), 5, "each override must carry a reason");
+    // The five vulnerable versions currently exempted; bumping any of them
+    // without a reviewed entry goes red again.
+    for version in ["0.18.5", "1.0.4", "0.2.11", "5.4.21", "0.21.5"] {
+        must_have(&cfg, ".osv-scanner.toml", &format!("version = \"{version}\""));
+    }
+    // Policy must be written down next to the mechanism.
+    let conv = rd("CONVENTIONS.md");
+    must_have(&conv, "CONVENTIONS.md", "Dependency exceptions");
 }
 
 fn script_has_gate(script: &str) {

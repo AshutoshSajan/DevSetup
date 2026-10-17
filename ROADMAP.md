@@ -49,6 +49,20 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 - [ ] Ollama and other installers that need sudo
 
 ## Known issues
+
+### Security-clearing dependency migrations (exemptions in `.osv-scanner.toml`)
+- [ ] Tauri 3 / gtk-rs 0.20 migration — clears the `glib` exemption
+  (RUSTSEC-2024-0429) and replays the whole local-GTK install path on the
+  new stack. Largest migration on this list; plan as `feat/tauri-3`.
+- [ ] vite 6 migration — clears the `vite` + `esbuild` exemptions
+  (GHSA-fx2h-pf6j-xcff high; dev-server-only). vite 6 previously broke the
+  tauri v2 dev flow, which is why the line is pinned back to `^5`; re-verify
+  both dev server and `tauri build` before reopening.
+- [ ] Unmaintained-crate chain cleanup — `proc-macro-error` and
+  `unsafe-libyaml` have no fixed release; the exemption lapses when
+  dependencies stop pulling them (watch Dependabot majors, serde_yaml
+  replacements).
+
 - The Doctor terminal-PATH check starts your `$SHELL` interactively (bash, zsh, sh, dash or fish) and is an approximation: shell frameworks that print output or ask questions can make it report "could not check".
 - Upgrading Node through mise installs a new Node version, and global npm packages (Codex CLI, Gemini CLI, pnpm) from the old version are not carried over. Install them again afterwards; DevSetup then shows them as missing.
 - Apt package names and Flatpak IDs are not yet verified against Debian 13 (for example `docker-compose`, `redis-server`, `starship`, `eza`). The pre-flight check now warns about apt names missing from your sources; Flatpak IDs are not checked yet.

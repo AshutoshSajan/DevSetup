@@ -47,9 +47,10 @@ chmod +x "$tmp_dir/osv-scanner-bin"
 
 echo "== OSV scan of package-lock.json and src-tauri/Cargo.lock =="
 "$tmp_dir/osv-scanner-bin" scan source \
+    --config=.osv-scanner.toml \
     --lockfile=package-lock.json \
     --lockfile=src-tauri/Cargo.lock \
-    || fail "deps.sh: OSV findings above — bump the packages and regenerate the lockfiles"
+    || fail "deps.sh: OSV findings above — bump the packages and regenerate the lockfiles; a new exemption needs a reviewed PR that adds it to .osv-scanner.toml with a reason"
 
 echo
 echo "== npm audit (production deps) =="

@@ -39,20 +39,21 @@ jobs:
           set -euo pipefail
           OSV_VERSION=v2.7.0
           OSV_SHA256=160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b
-          curl -fsSL -o "$RUNNER_TEMP/osv-scanner-bin" \
+          curl -fsSL -o "$RUNNER_TEMP/osv-scanner" \
             "https://github.com/google/osv-scanner/releases/download/${OSV_VERSION}/osv-scanner_linux_amd64"
-          printf '%s  %s\n' "$OSV_SHA256" "$RUNNER_TEMP/osv-scanner-bin" | sha256sum -c -
-          chmod +x "$RUNNER_TEMP/osv-scanner-bin"
+          printf '%s  %s\n' "$OSV_SHA256" "$RUNNER_TEMP/osv-scanner" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/osv-scanner"
           echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
 
       - name: Scan npm + Cargo lockfiles against OSV
         run: |
           set -o pipefail
           osv-scanner scan source \
+            --config=.osv-scanner.toml \
             --lockfile=package-lock.json \
             --lockfile=src-tauri/Cargo.lock \
             || {
-              echo "::error::OSV findings above. Patch hint: bump the affected packages (Dependabot PRs target dev) and regenerate the lockfiles with the package managers - locks are never hand-edited."
+              echo "::error::OSV findings above. Unlisted findings are not exempt: patch by regenerating the lockfiles with the package managers (locks are never hand-edited); any new exemption needs its own reviewed PR that adds it to .osv-scanner.toml with a reason."
               exit 1
             }
 

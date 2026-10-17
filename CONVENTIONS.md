@@ -128,6 +128,25 @@ All on the free plan, all payload-only or shallow-cheap:
   Dependabot PRs into `dev`.
 - Local parity: `scripts/deps.sh` (or `--offline` to skip network steps).
 
+### Dependency exceptions
+
+The OSV scan fails on **every** finding except the ones listed in
+`.osv-scanner.toml`. That file is the only exemption mechanism, and an entry
+must state the exact vulnerable **version** and a **reason** (both enforced
+by contract tests, as is the CONVENTIONS section you are reading). Exempting
+an unlisted vulnerable version, or dropping a reason, is a violation.
+
+- Scoping matters: a `version`-less override would also hide future
+  vulnerabilities in that package — forbidden. Exemptions lapse the moment
+  the package version moves, so fixes and new findings surface again.
+- npm production exposure remains gated by `npm audit --omit=dev`
+  independently; dev-tooling findings in vite/esbuild ride the vite 6
+  migration rather than the production gate.
+- An exemption is not a disposal. Each entry names its remediation path
+  (e.g. the Tauri 3 migration clears `glib`; unmaintained crates clear when
+  dependencies stop pulling them). A merge that adds an exemption should
+  also add or update the corresponding ROADMAP item.
+
 ## Reviews and PRs
 
 - A PR contains one concern. Convention/tooling PRs (`chore/…`) never ride
