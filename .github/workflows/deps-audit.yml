@@ -1,0 +1,59 @@
+name: Dependency audit
+
+# Vulnerability gate for the lockfiles the repo ships (npm + Cargo), plus the
+# stale install-script pin check. Weekly cron (off the round minute) and PRs
+# into main that touch dependency manifests/locks. Scanner is pinned by
+# version AND sha256 and verified with `sha256sum -c -` before it runs -
+# a silently rotated upstream binary is not an option.
+# Findings fail the run; patch by regenerating the lockfiles (see PR hint).
+on:
+  schedule:
+    - cron: '23 4 * * 1'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'package.json'
+      - 'package-lock.json'
+      - 'src-tauri/Cargo.toml'
+      - 'src-tauri/Cargo.lock'
+      - 'scripts/deps.sh'
+      - 'scripts/pin-scripts.mjs'
+
+permissions: {}
+
+jobs:
+  vuln-scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (depth 1)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Fetch pinned osv-scanner and verify its checksum
+        run: |
+          set -euo pipefail
+          OSV_VERSION=v2.7.0
+          OSV_SHA256=160c6253e2922e9e0a6a9771c5c4c40a4b3c6090b34a3cdd5e80c96cc2e4218b
+          curl -fsSL -o "$RUNNER_TEMP/osv-scanner-bin" \
+            "https://github.com/google/osv-scanner/releases/download/${OSV_VERSION}/osv-scanner_linux_amd64"
+          printf '%s  %s\n' "$OSV_SHA256" "$RUNNER_TEMP/osv-scanner-bin" | sha256sum -c -
+          chmod +x "$RUNNER_TEMP/osv-scanner-bin"
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+
+      - name: Scan npm + Cargo lockfiles against OSV
+        run: |
+          set -o pipefail
+          osv-scanner scan source \
+            --lockfile=package-lock.json \
+            --lockfile=src-tauri/Cargo.lock \
+            || {
+              echo "::error::OSV findings above. Patch hint: bump the affected packages (Dependabot PRs target dev) and regenerate the lockfiles with the package managers - locks are never hand-edited."
+              exit 1
+            }
+
+      - name: npm production audit
+        run: npm audit --omit=dev --audit-level=moderate
+
+      - name: Install-script pins are current
+        run: node scripts/pin-scripts.mjs --check
