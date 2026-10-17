@@ -1,0 +1,41 @@
+# Documented OSV-scanner exemptions. The scan fails on any finding that is
+# NOT listed here - every entry is a version-scoped, reason-backed decision
+# that was reviewed in the PR that added it, and stops applying as soon as
+# the package version moves (so a real fix or a new vulnerability surfaces
+# again). Removing an entry, or pinning an unlisted vulnerable version, goes
+# red. Policy: CONVENTIONS.md, "Dependency exceptions".
+# Regenerate checks: scripts/deps.sh   (local parity with the CI audit)
+[[PackageOverrides]]
+ecosystem = "crates.io"
+name = "glib"
+version = "0.18.5"
+ignore = true
+reason = "RUSTSEC-2024-0429 (medium 6.9). glib 0.18.x enters through Tauri 2's GTK stack (tao/muda); the fix lives in the Tauri 3 / gtk-rs 0.20 migration, tracked in ROADMAP.md. Linux-only surface."
+
+[[PackageOverrides]]
+ecosystem = "crates.io"
+name = "proc-macro-error"
+version = "1.0.4"
+ignore = true
+reason = "RUSTSEC-2024-0370: unmaintained crate, no fixed release exists. Build-time proc-macro helper only; surfaced again the moment any dependency stops pulling it."
+
+[[PackageOverrides]]
+ecosystem = "crates.io"
+name = "unsafe-libyaml"
+version = "0.2.11"
+ignore = true
+reason = "RUSTSEC-2024-0449: unmaintained crate, no fixed release exists. Enters through the serde_yaml chain in build/test config parsing."
+
+[[PackageOverrides]]
+ecosystem = "npm"
+name = "vite"
+version = "5.4.21"
+ignore = true
+reason = "GHSA-4w7w-66w2-5vf9 / GHSA-fx2h-pf6j-xcff (high 8.2) / GHSA-v6wh-96g9-6wx3 - all hit vite's DEV server only (npm audit --omit=dev stays the production gate and is clean). Fixes require vite 6, which broke the tauri v2 dev flow and was deliberately pinned back to ^5; migration tracked in ROADMAP.md."
+
+[[PackageOverrides]]
+ecosystem = "npm"
+name = "esbuild"
+version = "0.21.5"
+ignore = true
+reason = "GHSA-67mh-4wv8-2f99 (medium 5.3): dev-server usage only, transitive dev dependency of vite 5. Cleared by the same vite 6 migration tracked in ROADMAP.md; production deps stay gated by npm audit --omit=dev."
