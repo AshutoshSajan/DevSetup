@@ -1,7 +1,8 @@
 name: Guard dev (trunk integrity)
 
 # Trunk guard for dev. Deliberately NO checkout and NO build steps: everything
-# is read from the push event payload with jq, so the job stays inside the
+# is read from the push event payload with jq (plus one REST commit read when
+# the payload itself lacks the parent list), so the job stays inside the
 # free-plan budget (seconds, sandbox-only tooling).
 # Model (CONVENTIONS.md): trunk tips must be merge commits; squash merges and
 # direct commits count as violations; force-pushes and branch deletions fail.
@@ -14,10 +15,16 @@ permissions: {}
 jobs:
   trunk-integrity-dev:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Inspect push metadata (not the code)
         env:
           EVENT_JSON: ${{ toJSON(github.event) }}
+          API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.after }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -33,7 +40,19 @@ jobs:
             exit 1
           fi
 
-          parent_count=$(printf '%s' "$EVENT_JSON" | jq '.head_commit.parents | length')
+          # Merge-commit-ness. The payload's parent list is authoritative when
+          # it exists, but some push payloads (observed for merges made in the
+          # GitHub UI) ship NO 'parents' array at all. In that case ask the
+          # commits API, which always carries the real parents.
+          parent_count=$(printf '%s' "$EVENT_JSON" | jq -r '.head_commit.parents // empty | length')
+          if [ -z "$parent_count" ]; then
+            echo "push payload has no parent list (schema drift) - reading commit $SHA from the REST API"
+            parent_count=$(curl -fsS \
+                             -H "Authorization: Bearer $GH_TOKEN" \
+                             -H "Accept: application/vnd.github+json" \
+                             "$API_URL/repos/$REPO/commits/$SHA" \
+                             | jq '.parents | length')
+          fi
           if [ "$parent_count" -lt 2 ]; then
             echo "::error::TRUNK GUARD (dev): head commit has $parent_count parent(s) - a squash merge, fast-forward or direct push reached dev. Trunk tips must be merge commits (CONVENTIONS.md)."
             exit 1
