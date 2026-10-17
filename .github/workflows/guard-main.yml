@@ -2,7 +2,8 @@ name: Guard main (trunk integrity)
 
 # Same contract as guard-dev.yml, mirrored for the release trunk: main must
 # only ever advance by merge commits (release PRs dev -> main). Payload-only
-# job: no checkout, no build - free-plan-cheap.
+# job (plus one REST commit read when the payload lacks parents) - free-plan
+# cheap.
 on:
   push:
     branches: [main]
@@ -12,10 +13,16 @@ permissions: {}
 jobs:
   trunk-integrity-main:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - name: Inspect push metadata (not the code)
         env:
           EVENT_JSON: ${{ toJSON(github.event) }}
+          API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.after }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -31,7 +38,17 @@ jobs:
             exit 1
           fi
 
-          parent_count=$(printf '%s' "$EVENT_JSON" | jq '.head_commit.parents | length')
+          # Merge-commit-ness. Payload parents when present; REST fallback
+          # when the payload ships no parent list (observed for UI merges).
+          parent_count=$(printf '%s' "$EVENT_JSON" | jq -r '.head_commit.parents // empty | length')
+          if [ -z "$parent_count" ]; then
+            echo "push payload has no parent list (schema drift) - reading commit $SHA from the REST API"
+            parent_count=$(curl -fsS \
+                             -H "Authorization: Bearer $GH_TOKEN" \
+                             -H "Accept: application/vnd.github+json" \
+                             "$API_URL/repos/$REPO/commits/$SHA" \
+                             | jq '.parents | length')
+          fi
           if [ "$parent_count" -lt 2 ]; then
             echo "::error::TRUNK GUARD (main): head commit has $parent_count parent(s) - a squash merge, fast-forward or direct push reached main. Trunk tips must be merge commits (CONVENTIONS.md)."
             exit 1

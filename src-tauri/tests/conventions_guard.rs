@@ -234,12 +234,16 @@ fn guard_workflows_pin_trunk_integrity() {
         must_have(&w, file, &format!("branches: [{branch}]"));
         must_have(&w, file, name);
         must_have(&w, file, "permissions: {}");
+        must_have(&w, file, "contents: read");
         // Payload-only: no checkout, no repo material — seconds-cheap jobs.
         must_not_have(&w, file, "actions/checkout");
-        // Merge-commit-ness, force and deletion facts from the payload.
+        // Merge-commit-ness, force and deletion facts from the payload,
+        // with a REST fallback when the payload ships no parent list
+        // (observed for merges made in the GitHub UI).
         must_have(&w, file, "'.head_commit // null'");
         must_have(&w, file, "'.forced // false'");
-        must_have(&w, file, "'.head_commit.parents | length'");
+        must_have(&w, file, "'.head_commit.parents // empty | length'");
+        must_have(&w, file, "repos/$REPO/commits/$SHA");
         must_have(&w, file, "-lt 2");
     }
 }
@@ -259,9 +263,13 @@ fn prune_workflow_contract() {
     must_have(&w, "prune-branch.yml", "case \"$HEAD_REF\" in\n            main|dev)");
     // Only allowlisted namespaces.
     must_have(&w, "prune-branch.yml", "feat/*|fix/*|chore/*|ci/*|docs/*|perf/*|refactor/*|test/*|release/*|dependabot/*");
-    // Ancestry proof before deletion.
-    must_have(&w, "prune-branch.yml", "git merge-base --is-ancestor");
-    must_have(&w, "prune-branch.yml", "git push origin --delete");
+    // Ancestry proof via the authoritative compare API (no shallow guesses),
+    // and deletion only through it.
+    must_have(&w, "prune-branch.yml", "repos/$REPO/compare/$BASE_REF...$HEAD_SHA");
+    must_have(&w, "prune-branch.yml", "behind|identical");
+    must_have(&w, "prune-branch.yml", "repos/$REPO/git/refs/heads/$HEAD_REF");
+    // Payload-only: pruner must not need a checkout at all.
+    must_not_have(&w, "prune-branch.yml", "actions/checkout");
 }
 
 #[test]
@@ -287,6 +295,9 @@ fn deps_audit_is_pinned_and_off_round() {
     must_have(&workflow, "deps-audit.yml", "OSV_VERSION=v2.7.0");
     must_have(&workflow, "deps-audit.yml", "sha256sum -c -");
     must_have(&workflow, "deps-audit.yml", sha);
+    // It checks out the repo, so it must hold real read permissions
+    // (payload-only `permissions: {}` breaks its checkout).
+    must_have(&workflow, "deps-audit.yml", "contents: read");
     // Both files must pin the same scanner binary (drift is the failure mode).
     must_have(&script, "scripts/deps.sh", "OSV_VERSION=v2.7.0");
     must_have(&script, "scripts/deps.sh", sha);

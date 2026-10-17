@@ -102,14 +102,18 @@ npm run check                          # tsc --noEmit && vite build && cargo tes
 All on the free plan, all payload-only or shallow-cheap:
 
 - `guard-dev.yml` / `guard-main.yml`: on any push to a trunk, jq-read the
-  event payload (no checkout). Fail if the head commit is not a merge commit
-  (`parents < 2` — squash counts), if `forced` is true, or if the push deleted
-  a branch (`head_commit` missing).
+  event payload (no checkout). Fail if the push deleted a branch
+  (`head_commit` missing), if `forced` is true, or if the head commit is not
+  a merge commit (`parents < 2` — squash counts). When the payload itself
+  ships no parent list (observed for merges made in the GitHub UI), the
+  parent count comes from the REST commits API instead.
 - `prune-branch.yml`: after a PR into `dev`/`main` is merged, delete its head
   branch from origin — only if the branch still exists, is on the allowlisted
-  namespaces, *is not* a trunk, and a `merge-base --is-ancestor` proof shows
-  the landing. Unproven ⇒ untouched. This is the single writer for the
-  "delete merged branches" concern: no inline prune step may exist elsewhere.
+  namespaces, *is not* a trunk, and the compare API proves the landing
+  (`behind` or `identical` means the head commit is contained in the trunk).
+  Unproven ⇒ untouched. Payload-only: no checkout. This is the single writer
+  for the "delete merged branches" concern: no inline prune step may exist
+  elsewhere.
 - `deps-audit.yml`: weekly cron (off the round minute) and PRs into `main`
   touching dependency files. Runs a sha-verified `osv-scanner` over
   `package-lock.json` + `Cargo.lock`, `npm audit --omit=dev`, and the stale

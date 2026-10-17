@@ -6,6 +6,9 @@ name: Dependency audit
 # version AND sha256 and verified with `sha256sum -c -` before it runs -
 # a silently rotated upstream binary is not an option.
 # Findings fail the run; patch by regenerating the lockfiles (see PR hint).
+# This job CHECKS OUT the repo, so it needs real read permissions - unlike
+# the payload-only guard workflows, `permissions: {}` would make the default
+# token useless and the checkout would fail with "Repository not found".
 on:
   schedule:
     - cron: '23 4 * * 1'
@@ -19,7 +22,8 @@ on:
       - 'scripts/deps.sh'
       - 'scripts/pin-scripts.mjs'
 
-permissions: {}
+permissions:
+  contents: read
 
 jobs:
   vuln-scan:
