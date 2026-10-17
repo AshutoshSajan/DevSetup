@@ -34,12 +34,12 @@ Legend: ✅ available, 🚧 partly done, 🗓 planned. Full details in [`ROADMAP
 - ✅ Save and share setups: save the selection as `devsetup.yaml`, load it from a file, pasted text or a GitHub link
 - ✅ Scan this machine: find which tools from the list are installed, suggest roles, and save the result as a setup file
 - ✅ Cleaner tab: unused apt packages, apt download cache, Docker prune, unused Flatpak runtimes and npm, pip, mise and Cargo caches, with the estimated space each frees shown first
-- 🗓 Update all: apt, Flatpak, mise, npm globals, script-installed tools
-- 🗓 Doctor: check tools, PATH and the `docker` group, with fixes
+- ✅ Update all: system packages, Flatpak, mise, npm globals, pipx and script-installed tools, with counts and package names shown first
+- ✅ Doctor: checks that tools run and are on your terminal PATH, Docker service and group, Git identity, Flathub, the apt database, disk space and restarts, with suggested fixes
 
 **Phase 3: post-install setup**
-- 🗓 Git and GitHub wizard: name and email, SSH key, `gh auth`, commit signing
-- 🗓 Shell setup: zsh with prompt and plugins, aliases and history defaults
+- ✅ Git and GitHub wizard: identity, SSH key, GitHub sign-in with the browser, adding the key to GitHub, and SSH-signed commits
+- ✅ Shell setup: prompt, plugins, history defaults, completion, integrations and aliases for zsh or bash, with preview, backup and removal
 - 🗓 VS Code extension packs per role
 - 🗓 System tweaks: Docker group and service, file-watcher limits, Flathub, firewall, timezone
 - 🗓 Driver helpers: NVIDIA, CUDA, container toolkit for GPU Docker, Android udev rules for `adb`
@@ -117,6 +117,38 @@ Safe items are pre-ticked; items marked "Review first" are not.
 - Cache folders are emptied only inside your home folder, links are never followed, and a symlinked folder is refused.
 - Sizes are estimates: Docker's figures are its own, and Flatpak does not report sizes. Volumes, project folders and `target` or `node_modules` directories are never touched.
 
+## Updates
+Open **Updates** in the sidebar. It checks read-only and lists, per source, how many updates exist and which packages (where that can be checked ahead of time). Tick what to update.
+- **System packages**: `apt-get update` and `apt-get upgrade -y` in one `pkexec` call, keeping your existing config files. Package lists are refreshed first, so the count can be lower than what you get.
+- **Flatpak** (your user installs), **mise tools** (`mise upgrade`), **global npm packages** (`npm update -g`), **pipx apps** (`pipx upgrade-all`).
+- **Script-installed tools** (mise, Bun, Deno, uv, rustup, Claude Code, OpenCode) run their own update command. It does nothing when the tool is current.
+- Each item updates everything of its kind on the machine, not only tools from DevSetup's list.
+- Upgrading Node with mise installs a new Node version, and global npm packages from the old one are not carried over. Install them again afterwards. The item warns you when Node is among the updates.
+
+## Doctor
+Open **Doctor** in the sidebar. The checks only read. Each finding shows what was found and how to fix it. Fixes are one click, one password prompt, or lines to copy.
+- **Installed commands run**: command-line tools are run with `--version`. Only a command that cannot run, crashes, or reports a missing file or library counts as broken. GUI apps are never started.
+- **Terminal PATH**: tools installed into your home folder (mise, uv, Claude Code, Bun, Deno, rustup) are looked up from a fresh interactive `$SHELL`. If some are missing, it gives you the lines to add to your shell's rc file instead of editing it for you.
+- **Docker**: the service is running and enabled (fix: `systemctl enable --now docker`), and you are in the `docker` group (fix: `usermod -aG docker`, with a warning that the group is root-equivalent). The helper only changes the user who started it.
+- **Also**: tools DevSetup installed that have since disappeared, Git name and email, the Flathub remote (fix adds it for your user), `apt-get check`, free disk space, and a pending restart.
+
+## Git and GitHub
+Open **Git and GitHub** in the sidebar. Every step is optional and only changes your own settings.
+1. **Identity**: `user.name`, `user.email` and, if you like, `init.defaultBranch main`, written with `git config --global`.
+2. **SSH key**: creates `~/.ssh/id_ed25519` and never overwrites an existing key. Only public keys (`*.pub`) are ever read, shown or sent. A passphrase is optional and is passed to `ssh-keygen -N`, so other users on a shared machine could see it in the process list for a moment; you can also add one later with `ssh-keygen -p`. "Test connection" connects to `git@github.com` and trusts GitHub's host key the first time (`StrictHostKeyChecking=accept-new`).
+3. **GitHub sign-in**: runs `gh auth login --web`. DevSetup shows the one-time code and an "Open github.com/login/device" button (a fixed page, never a link from elsewhere). With HTTPS it also runs `gh auth setup-git`. You can then add your SSH key to your account.
+4. **Signed commits**: `gpg.format ssh`, `user.signingkey`, `commit.gpgsign true` and an `allowed_signers` file in `~/.config/git/` so `git log --show-signature` works. For GitHub's Verified badge the key must also be added as a signing key, which needs the `admin:ssh_signing_key` permission.
+- Values are validated and passed as arguments, never through a shell. Key paths must be `.pub` files directly inside `~/.ssh`.
+
+## Shell setup
+Open **Shell setup** in the sidebar.
+- **What it edits:** one block between `# >>> devsetup shell >>>` and `# <<< devsetup shell <<<` in `~/.zshrc` or `~/.bashrc`. Nothing outside the markers is touched. The first time, your original is copied to `~/.zshrc.devsetup-backup` (or `.bashrc`). If the file is a symlink (for example from a dotfiles repository), the file it points to is edited and the link stays.
+- **Options:** history defaults, completion, Starship prompt, zsh-autosuggestions and zsh-syntax-highlighting (zsh only, with syntax highlighting kept last as that plugin requires), zoxide, fzf key bindings, direnv, mise, handy aliases and Git aliases.
+- **Safe without the tools:** every line checks that the program or plugin file exists first, so a missing tool does nothing. "Tick them in Setup" selects the missing ones for the usual reviewed install.
+- **Preview, Update, Remove:** Preview shows the exact block and warns if your file seems to configure the same thing already. Applying again replaces the block. Remove deletes it. A block with a missing or duplicated marker is refused instead of guessed at.
+- **Login shell:** "Make zsh my login shell" runs through the root helper (one password prompt) and only accepts zsh or bash that are listed in `/etc/shells`. Log out and back in afterwards.
+- fish is not supported yet.
+
 ## Install-script pinning
 Some tools install by running a script from the internet (mise, Bun, Deno, uv, rustup, Claude Code, OpenCode, Ollama).
 - A tool can carry `sha256: "<hash>"` in `manifest/tools.yaml`. DevSetup downloads the script, compares its SHA-256 and
@@ -137,5 +169,5 @@ GUI apps use Flatpak, CLI tools use apt, mise, npm, pipx or an install script.
 
 ## Layout
 - `manifest/tools.yaml`: roles and tools
-- `src-tauri/src/`: `manifest.rs`, `system.rs` (distro and installed detection), `plan.rs`, `preflight.rs`, `review.rs` (review details), `exec.rs` (executor), `helper.rs` (root helper), `state.rs`, `setup.rs` (setup files), `scan.rs` (machine scan), `clean.rs` (cleaner), `lib.rs` (commands)
+- `src-tauri/src/`: `manifest.rs`, `system.rs` (distro and installed detection), `plan.rs`, `preflight.rs`, `review.rs` (review details), `exec.rs` (executor), `helper.rs` (root helper), `state.rs`, `setup.rs` (setup files), `scan.rs` (machine scan), `clean.rs` (cleaner), `update.rs` (updater), `doctor.rs` (health checks), `gitwiz.rs` (Git and GitHub wizard), `shellcfg.rs` (shell setup), `lib.rs` (commands)
 - `src/api.ts`: the only frontend file that talks to Tauri

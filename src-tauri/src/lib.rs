@@ -1,5 +1,7 @@
 mod clean;
+mod doctor;
 mod exec;
+mod gitwiz;
 mod helper;
 mod manifest;
 mod plan;
@@ -7,8 +9,10 @@ mod preflight;
 mod review;
 mod scan;
 mod setup;
+mod shellcfg;
 mod state;
 mod system;
+mod update;
 
 use manifest::{Manifest, Tool};
 use serde::Serialize;
@@ -86,12 +90,85 @@ async fn scan_clean() -> Vec<clean::CleanItem> {
 fn run_clean(app: tauri::AppHandle, ids: Vec<String>) -> Result<(), String> { clean::start(app, ids) }
 
 #[tauri::command]
+async fn scan_updates() -> Vec<update::UpdateItem> {
+    tauri::async_runtime::spawn_blocking(update::scan).await.unwrap_or_default()
+}
+
+#[tauri::command]
+fn run_updates(app: tauri::AppHandle, ids: Vec<String>) -> Result<(), String> { update::start(app, ids) }
+
+#[tauri::command]
+async fn scan_doctor() -> Vec<doctor::Finding> {
+    tauri::async_runtime::spawn_blocking(doctor::scan).await.unwrap_or_default()
+}
+
+#[tauri::command]
+fn run_fix(app: tauri::AppHandle, id: String) -> Result<(), String> { doctor::start_fix(app, id) }
+
+#[tauri::command]
+async fn git_state() -> gitwiz::GitState {
+    tauri::async_runtime::spawn_blocking(gitwiz::state).await.unwrap_or_default()
+}
+
+#[tauri::command]
+fn git_save_identity(name: String, email: String, default_main: bool) -> Result<(), String> { gitwiz::save_identity(&name, &email, default_main) }
+
+#[tauri::command]
+async fn git_generate_key(email: String, passphrase: String) -> Result<String, String> {
+    let r = tauri::async_runtime::spawn_blocking(move || gitwiz::generate_key(&email, &passphrase)).await.map_err(|e| e.to_string())?;
+    r
+}
+
+#[tauri::command]
+async fn git_test_ssh() -> gitwiz::SshTest {
+    tauri::async_runtime::spawn_blocking(gitwiz::test_ssh).await.unwrap_or_default()
+}
+
+#[tauri::command]
+async fn git_add_key(path: String, kind: String) -> Result<String, String> {
+    let r = tauri::async_runtime::spawn_blocking(move || gitwiz::add_key(&path, &kind)).await.map_err(|e| e.to_string())?;
+    r
+}
+
+#[tauri::command]
+async fn git_setup_credentials() -> Result<String, String> {
+    let r = tauri::async_runtime::spawn_blocking(gitwiz::setup_git_credentials).await.map_err(|e| e.to_string())?;
+    r
+}
+
+#[tauri::command]
+fn git_set_signing(enable: bool, key: String, email: String) -> Result<(), String> { gitwiz::set_signing(enable, &key, &email) }
+
+#[tauri::command]
+fn open_url(which: String) -> Result<(), String> { gitwiz::open_url(&which) }
+
+#[tauri::command]
+fn gh_login(app: tauri::AppHandle, protocol: String) -> Result<(), String> { gitwiz::start_login(app, protocol) }
+
+#[tauri::command]
+async fn shell_state() -> shellcfg::ShellState {
+    tauri::async_runtime::spawn_blocking(shellcfg::state).await.unwrap_or_default()
+}
+
+#[tauri::command]
+fn shell_preview(shell: String, opts: shellcfg::Options) -> Result<shellcfg::Preview, String> { shellcfg::preview(&shell, &opts) }
+
+#[tauri::command]
+fn shell_apply(shell: String, opts: shellcfg::Options) -> Result<String, String> { shellcfg::apply(&shell, &opts) }
+
+#[tauri::command]
+fn shell_remove(shell: String) -> Result<String, String> { shellcfg::remove(&shell) }
+
+#[tauri::command]
+fn set_login_shell(app: tauri::AppHandle, shell: String) -> Result<(), String> { shellcfg::start_login_shell(app, shell) }
+
+#[tauri::command]
 fn cancel_run() { exec::cancel() }
 
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_system, get_manifest, list_tools, make_plan, run_plan, cancel_run, preflight, plan_details, export_setup, parse_setup, read_setup_file, write_setup_file, fetch_setup, scan_machine, scan_clean, run_clean])
+        .invoke_handler(tauri::generate_handler![get_system, get_manifest, list_tools, make_plan, run_plan, cancel_run, preflight, plan_details, export_setup, parse_setup, read_setup_file, write_setup_file, fetch_setup, scan_machine, scan_clean, run_clean, scan_updates, run_updates, scan_doctor, run_fix, git_state, git_save_identity, git_generate_key, git_test_ssh, git_add_key, git_setup_credentials, git_set_signing, open_url, gh_login, shell_state, shell_preview, shell_apply, shell_remove, set_login_shell])
         .run(tauri::generate_context!())
         .expect("error while running DevSetup");
 }

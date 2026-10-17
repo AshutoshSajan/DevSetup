@@ -11,7 +11,7 @@ pub enum Method {
     Mise { tool: String, #[serde(default)] version: Option<String> },
     Npm { package: String, #[serde(default)] version: Option<String> },
     Pipx { package: String, #[serde(default)] version: Option<String> },
-    Script { url: String, #[serde(default)] sha256: Option<String>, #[serde(default)] args: Vec<String>, #[serde(default)] uninstall: Option<String> },
+    Script { url: String, #[serde(default)] sha256: Option<String>, #[serde(default)] args: Vec<String>, #[serde(default)] uninstall: Option<String>, #[serde(default)] update: Option<String> },
 }
 
 #[derive(Debug, Clone, Deserialize, Serialize)]

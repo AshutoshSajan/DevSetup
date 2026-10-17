@@ -10,6 +10,10 @@
     <nav id="nav" aria-label="Sections">
       <button data-v="setup" aria-current="page">Setup</button>
       <button data-v="clean">Cleaner</button>
+      <button data-v="updates">Updates</button>
+      <button data-v="doctor">Doctor</button>
+      <button data-v="git">Git and GitHub</button>
+      <button data-v="shell">Shell setup</button>
     </nav>
     <div class="mu" style="margin-top:auto">Theme</div>
     <div id="theme" role="group" aria-label="Theme">
@@ -40,10 +44,30 @@
     <div id="clean-list" class="grid"></div>
     <footer><span id="clean-note" class="mu"></span><button class="bt" id="clean-go" disabled>Clean selected</button></footer>
   </main>
+  <main id="v-updates" hidden>
+    <div><h1>Updates</h1><div class="mu">Update system packages and the tools you installed. Nothing changes until you press Update.</div></div>
+    <div class="bar"><span id="upd-sum" class="mu"></span><span class="ctl"><button id="upd-rescan" class="b2">Check again</button></span></div>
+    <div id="upd-list" class="grid"></div>
+    <footer><span class="mu">Each item updates everything of its kind on this machine, not only tools from DevSetup's list.</span><button class="bt" id="upd-go" disabled>Update selected</button></footer>
+  </main>
+  <main id="v-doctor" hidden>
+    <div><h1>Doctor</h1><div class="mu">Checks that your tools run and your setup is healthy, with fixes. Checks only read; nothing changes until you press a fix.</div></div>
+    <div class="bar"><span id="doc-sum" class="mu"></span><span class="ctl"><button id="doc-rescan" class="b2">Run checks again</button></span></div>
+    <div id="doc-list" class="grid"></div>
+  </main>
+  <main id="v-git" hidden>
+    <div><h1>Git and GitHub</h1><div class="mu">Set up your identity, an SSH key, GitHub sign-in and signed commits. Every step is optional and only touches your own settings.</div></div>
+    <div id="git-list" class="stack"></div>
+  </main>
+  <main id="v-shell" hidden>
+    <div><h1>Shell setup</h1><div class="mu">Add a prompt, plugins, history settings and aliases to zsh or bash. DevSetup only edits one marked block, backs up your original file once, and can remove the block again.</div></div>
+    <div id="shell-list" class="stack"></div>
+  </main>
 </div>
 <div id="modal" class="modal" hidden><div class="dlg">
   <h2 id="mt">Review plan</h2>
   <div id="mbody"></div>
+  <div id="codebox" hidden></div>
   <div id="note" class="mu" hidden>System packages are installing and cannot be stopped safely. Cancel takes effect when they finish.</div>
   <pre id="log" hidden></pre>
   <div class="mfoot"><button id="mcancel" class="b2">Cancel</button><button id="mgo" class="bt">Install</button></div>

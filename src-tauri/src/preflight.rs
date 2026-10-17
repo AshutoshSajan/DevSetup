@@ -71,7 +71,7 @@ fn simulate(pkgs: &[String]) -> Sim {
 }
 
 /// Returns (mount point, available kilobytes) for the filesystem holding `path`.
-fn free_space(path: &str) -> Option<(String, u64)> {
+pub(crate) fn free_space(path: &str) -> Option<(String, u64)> {
     let out = Command::new("df").args(["-Pk", path]).env("LC_ALL", "C").output().ok()?;
     let s = String::from_utf8_lossy(&out.stdout).to_string();
     let f: Vec<&str> = s.lines().nth(1)?.split_whitespace().collect();
