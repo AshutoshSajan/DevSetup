@@ -9,7 +9,8 @@
     "tauri": "tauri",
     "icons": "tauri icon docs/app-icon.png",
     "pin": "node scripts/pin-scripts.mjs",
-    "pin:check": "node scripts/pin-scripts.mjs --check"
+    "pin:check": "node scripts/pin-scripts.mjs --check",
+    "check": "tsc --noEmit && vite build && cargo test --manifest-path src-tauri/Cargo.toml"
   },
   "dependencies": {
     "@tauri-apps/api": "^2",

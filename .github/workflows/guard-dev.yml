@@ -1,0 +1,42 @@
+name: Guard dev (trunk integrity)
+
+# Trunk guard for dev. Deliberately NO checkout and NO build steps: everything
+# is read from the push event payload with jq, so the job stays inside the
+# free-plan budget (seconds, sandbox-only tooling).
+# Model (CONVENTIONS.md): trunk tips must be merge commits; squash merges and
+# direct commits count as violations; force-pushes and branch deletions fail.
+on:
+  push:
+    branches: [dev]
+
+permissions: {}
+
+jobs:
+  trunk-integrity-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect push metadata (not the code)
+        env:
+          EVENT_JSON: ${{ toJSON(github.event) }}
+        run: |
+          set -euo pipefail
+
+          head_commit=$(printf '%s' "$EVENT_JSON" | jq -r '.head_commit // null')
+          if [ "$head_commit" = "null" ]; then
+            echo "::error::TRUNK GUARD (dev): push carries no head_commit - a branch deletion or a non-commit push. Branches are never deleted from trunks."
+            exit 1
+          fi
+
+          forced=$(printf '%s' "$EVENT_JSON" | jq -r '.forced // false')
+          if [ "$forced" = "true" ]; then
+            echo "::error::TRUNK GUARD (dev): '.forced' is true - a history rewrite reached the trunk. Shared history is immutable."
+            exit 1
+          fi
+
+          parent_count=$(printf '%s' "$EVENT_JSON" | jq '.head_commit.parents | length')
+          if [ "$parent_count" -lt 2 ]; then
+            echo "::error::TRUNK GUARD (dev): head commit has $parent_count parent(s) - a squash merge, fast-forward or direct push reached dev. Trunk tips must be merge commits (CONVENTIONS.md)."
+            exit 1
+          fi
+
+          echo "dev head $(printf '%s' "$head_commit" | jq -r '.id') is a merge commit ($parent_count parents), not forced - OK."

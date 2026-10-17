@@ -8,6 +8,10 @@ Pick your role, tick the tools, review the plan and install. It also removes wha
 **Status:** early development. The Debian/Ubuntu install flow is implemented but not yet tested on many machines.
 Try it on a spare VM first.
 
+Process, contribution rules and branch model live in [`CONVENTIONS.md`](CONVENTIONS.md)
+(agent harnesses: [`AGENTS.md`](AGENTS.md) is auto-loaded). Roadmap and todos:
+[`ROADMAP.md`](ROADMAP.md). This README stays product-only.
+
 ## Features
 
 Legend: ✅ available, 🚧 partly done, 🗓 planned. Full details in [`ROADMAP.md`](ROADMAP.md).

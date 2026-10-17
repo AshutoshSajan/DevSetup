@@ -1,0 +1,70 @@
+name: Prune merged heads
+
+# Deletes a task branch from origin once its PR is merged - but only with
+# proof: the branch must exist, be on the pruning allowlist, never be a trunk,
+# and its head must sit inside the target trunk's history (ancestry proof).
+# Any doubt leaves the branch in place. Single writer for the "remove merged
+# branches" concern: no inline prune step may exist in other workflows.
+on:
+  pull_request:
+    types: [closed]
+    branches: [dev, main]
+
+permissions: {}
+
+jobs:
+  prune-merged-head:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo != null &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout the merged head (shallow)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 40
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Fetch base tip (shallow)
+        run: git fetch --depth 40 origin "${{ github.event.pull_request.base.ref }}"
+
+      - name: Delete the merged branch, with proofs
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+
+          # Trunks are never deletable, no matter what arrived.
+          case "$HEAD_REF" in
+            main|dev)
+              echo "Refusing: '$HEAD_REF' is a trunk. Trunk deletions are not an option."
+              exit 0 ;;
+          esac
+
+          # Only allowlisted task-branch namespaces are touched.
+          case "$HEAD_REF" in
+            feat/*|fix/*|chore/*|ci/*|docs/*|perf/*|refactor/*|test/*|release/*|dependabot/*) ;;
+            *)
+              echo "'$HEAD_REF' is outside the pruning allowlist - left in place."
+              exit 0 ;;
+          esac
+
+          # The branch must still exist on origin (auto-delete may have won already).
+          if ! git ls-remote --exit-code origin "refs/heads/$HEAD_REF" >/dev/null 2>&1; then
+            echo "Branch '$HEAD_REF' is already gone from origin - nothing to prune."
+            exit 0
+          fi
+
+          # Prove the landing: the merged head must be an ancestor of the trunk.
+          # A shallow graph that cannot prove it is a reason NOT to delete.
+          if ! git merge-base --is-ancestor "refs/remotes/origin/$HEAD_REF" "refs/remotes/origin/$BASE_REF" 2>/dev/null; then
+            echo "Ancestry of '$HEAD_REF' into '$BASE_REF' could not be proven (shallow graph) - leaving it alone."
+            exit 0
+          fi
+
+          git push origin --delete "$HEAD_REF"
+          echo "Pruned merged branch '$HEAD_REF'."
