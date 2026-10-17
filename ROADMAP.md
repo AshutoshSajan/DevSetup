@@ -16,7 +16,7 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 - [ ] Secure Boot warning (needed once driver tools exist, Phase 3)
 - [x] Cancel a running install (stops user-level steps; the root apt step finishes first, since stopping it is unsafe) and retry failed or cancelled steps, one by one or all at once
 - [x] Remove tools DevSetup installed with apt, Flatpak, mise, npm and pipx, and install-script tools that define an `uninstall` command. Dependents go first, and a tool another remaining tool needs is kept
-- [~] Pinned install scripts: checksum verification before a script runs, strict mode, optional version pins for mise, npm and pipx tools, and `npm run pin` to generate the hashes. Still to do: generate and commit the real hashes (needs internet) and re-pin on a schedule in CI
+- [x] Pinned install scripts: checksum verification before a script runs, strict mode, optional version pins for mise, npm and pipx tools, and `npm run pin` to generate the hashes. All eight install scripts carry committed pins, and the weekly `deps-audit` workflow runs the stale-pin check
 - [ ] Polkit policy and `.deb` packaging for the root helper (`packaging/`)
 - [ ] Unit and integration tests for plan and executor
 
