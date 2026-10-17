@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# DevSetup post-merge: drop remote-tracking refs whose upstream was deleted on
+# origin, so local branches stop ghosting after another checkout merges and
+# deletes their PR head. Errors are ignored on purpose - an offline merge must
+# stay a working offline merge.
+if ! git fetch --prune origin >/dev/null 2>&1; then
+    echo "post-merge: 'git fetch --prune origin' failed (offline?) - refs left as-is." >&2
+fi
+exit 0

@@ -1,0 +1,63 @@
+#!/usr/bin/env bash
+# DevSetup pre-push gate.
+#
+# 1. First (before anything else): collect every ref token the push carries -
+#    the ref lines git ships on STDIN (<local-ref> <local-sha> <remote-ref>
+#    <remote-sha>, including the deletion form) plus the raw argv (remote name,
+#    url, refspecs) - and refuse any push that touches a protected trunk
+#    (refs/heads/dev, refs/heads/main). That covers plain commits, --force
+#    pushes and branch deletions with one gate. A boundary regex keeps this
+#    from firing on neighboring branch names (refs/heads/mainfoo, refs/heads/dev/x).
+# 2. Otherwise run the project gate (typecheck, build, tests) so a push never
+#    leaves the branch red.
+#
+# Bypassing a hook (--no-verify / disabling core.hooksPath) is allowed only as
+# a deliberate, stated exception recorded in the PR body (CONVENTIONS.md).
+set -u
+
+# --- Collect what the push carries: argv plus every stdin ref line ---
+args_text="$*"
+
+stdin_text=""
+# The `|| [ -n "$line" ]` keeps a final line without a trailing newline (git
+# always ships these terminated, but tooling may not).
+if [ ! -t 0 ]; then
+    while IFS= read -r line || [ -n "$line" ]; do stdin_text+="${line}"$'\n'; done
+fi
+
+# Exact trunk refs only: a boundary character or end-of-line must follow
+# main|dev, so refs/heads/mainfoo or refs/heads/dev/x are allowed through.
+trunk_re='(^|[[:space:]]|:|,)refs/heads/(main|dev)([[:space:]]|$)'
+
+payload="${args_text}"$'\n'"${stdin_text}"
+if printf '%s\n' "$payload" | grep -Eq "$trunk_re"; then
+    {
+        echo "REFUSED: pushes to the protected trunks (dev, main) are never allowed."
+        echo "Rule: CONVENTIONS.md 'Never work on the trunks directly' - no commits,"
+        echo "merges, force-pushes, resets or deletions on dev/main, ever."
+        echo "Cut a task branch from dev and open a pull request instead:"
+        echo "    git switch -c feat/your-work dev"
+        echo "    git push -u origin HEAD"
+        echo "    gh pr create --base dev"
+    } >&2
+    exit 1
+fi
+
+# --- Build tools that run their own `git` must describe THIS repo ---
+# Hooks run with git's environment exported (GIT_DIR points at the worktree's
+# git dir, etc.), so anything spawned from here that shells out to `git`
+# (version stamps, build metadata) otherwise reads the wrong repository.
+# After resolving the root, drop the git plumbing variables, then cd to root.
+root=$(git rev-parse --show-toplevel 2>/dev/null) || root=""
+[ -n "$root" ] || root="$PWD"
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_OBJECT_DIRECTORY GIT_ALTERNATE_OBJECT_DIRECTORIES GIT_PREFIX
+cd "$root" || { echo "pre-push: cannot enter repo root $root" >&2; exit 1; }
+
+# --- The gate (same commands as `npm run check`) ---
+echo "pre-push: running the project gate (npm run check)..."
+if ! npm run check; then
+    echo "pre-push: gate FAILED - push aborted. Fix the failures on the branch and push again." >&2
+    exit 1
+fi
+echo "pre-push: gate passed."
+exit 0

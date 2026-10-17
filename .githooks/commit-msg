@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# DevSetup commit-msg: Conventional Commits subject for ordinary commits.
+# Merge commits ("Merge pull request ...", "Merge branch ...") and reverts are
+# exempt - the trunk model merges PRs (see CONVENTIONS.md).
+# Bypassing (--no-verify) is allowed only as a deliberate, stated exception.
+set -eu
+
+[ $# -ge 1 ] || { echo "commit-msg: expected message file argument" >&2; exit 1; }
+[ -f "$1" ] || { echo "commit-msg: '$1' is not a file" >&2; exit 1; }
+
+line=$(head -n1 "$1")
+case "$line" in
+    Merge*|Revert*|"fixup!"*|"squash!"*) exit 0 ;;
+esac
+
+# subject = type(opt scope)(opt !): short text   (one line, non-empty body)
+re='^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([[:alnum:]_/.-]+\))?(!)?: .+'
+if ! printf '%s' "$line" | grep -Eq "$re"; then
+    {
+        echo "COMMIT REJECTED: subject '$line' is not a Conventional Commit."
+        echo "  expected:  type(scope)?: subject        e.g.  feat(cleaner): sweep mise caches"
+        echo "  types:  build chore ci docs feat fix perf refactor revert style test"
+        echo "  merge commits and 'Revert ...' are exempt. See CONVENTIONS.md."
+    } >&2
+    exit 1
+fi
+exit 0

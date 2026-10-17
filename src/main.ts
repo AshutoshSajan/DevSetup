@@ -1,5 +1,5 @@
 import "./style.css";
-import { api, Tool, Role, Plan, Imported, Scan, CleanItem } from "./api";
+import { api, Tool, Role, Plan, Imported, Scan, CleanItem, UpdateItem, Finding, FixInfo, GitState, ShellState, ShOpts } from "./api";
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T;
 const el = (tag: string, cls = "", text = "") => { const e = document.createElement(tag); e.className = cls; e.textContent = text; return e; };
@@ -174,13 +174,14 @@ type RunOptions = {
   retry?: (ids: string[]) => void;
   rootStep?: (id: string) => boolean;
   after?: () => Promise<void>;
+  onLog?: (line: string) => void;
 };
 
 /** Shows live progress for a run (install or clean): steps, log, cancel, and retry of failed steps. */
 async function runProgress(o: RunOptions) {
   const body = $("#mbody"), box = el("div"), rows = new Map<string, HTMLElement>(), states = new Map<string, string>();
   reviewToken++; modal.hidden = false;
-  body.replaceChildren(box); logEl.textContent = ""; logEl.hidden = false; noteEl.hidden = true;
+  body.replaceChildren(box); logEl.textContent = ""; logEl.hidden = false; noteEl.hidden = true; $("#codebox").hidden = true;
   running = true;
   $("#mt").textContent = o.title; mgo.hidden = true; mcancel.textContent = "Cancel"; mcancel.disabled = false;
   const row = (id: string) => {
@@ -194,9 +195,9 @@ async function runProgress(o: RunOptions) {
       st.className = "st " + s.state; st.textContent = s.message ? `${s.state}: ${s.message}` : s.state;
       noteEl.hidden = !(s.state === "running" && !!o.rootStep?.(s.id));
     }),
-    api.onLog(l => { logEl.textContent += `[${l.id}] ${l.line}\n`; logEl.scrollTop = logEl.scrollHeight; }),
+    api.onLog(l => { logEl.textContent += `[${l.id}] ${l.line}\n`; logEl.scrollTop = logEl.scrollHeight; o.onLog?.(l.line); }),
     api.onDone(async d => {
-      stopListening(); running = false; noteEl.hidden = true;
+      stopListening(); running = false; noteEl.hidden = true; $("#codebox").hidden = true;
       $("#mt").textContent = d.cancelled ? "Cancelled" : d.failed ? `Finished, ${d.failed} failed` : "Finished";
       mcancel.textContent = "Close"; mcancel.disabled = false;
       const unfinished = [...states].filter(([, st]) => st === "failed" || st === "cancelled").map(([id]) => id);
@@ -412,14 +413,347 @@ function startClean(ids: string[]) {
 $("#clean-go").onclick = () => { void startClean([...cleanOn]); };
 $("#clean-rescan").onclick = () => { void loadClean(); };
 
-function showView(v: "setup" | "clean") {
-  $("#v-setup").hidden = v !== "setup"; $("#v-clean").hidden = v !== "clean";
+// ---- updates ----
+let updItems: UpdateItem[] = [], updLoaded = false;
+const updOn = new Set<string>();
+
+async function loadUpdates() {
+  $("#upd-list").replaceChildren(el("div", "mu", "Checking for updates…")); $<HTMLButtonElement>("#upd-go").disabled = true; $("#upd-sum").textContent = "";
+  try { updItems = await api.scanUpdates(); }
+  catch (e) { $("#upd-list").replaceChildren(el("div", "st warn", `! Check failed: ${e}`)); return; }
+  updOn.clear();
+  for (const i of updItems) if (i.available && (i.count === null || i.count > 0)) updOn.add(i.id);
+  updLoaded = true; renderUpdates();
+}
+
+function renderUpdates() {
+  const box = $("#upd-list"); box.replaceChildren();
+  for (const i of updItems) {
+    const card = el("div", "card"), head = el("label", "row"), cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = updOn.has(i.id); cb.disabled = !i.available;
+    cb.onchange = () => { cb.checked ? updOn.add(i.id) : updOn.delete(i.id); renderUpdates(); };
+    const tag = !i.available ? "unavailable" : i.count === null ? "checked when run" : i.count === 0 ? "up to date" : `${i.count} update${i.count === 1 ? "" : "s"}`;
+    head.append(cb, el("b", "", i.name), el("span", "tag", tag));
+    card.append(head, el("div", "mu", i.description));
+    if (i.detail) card.append(el("div", "mu", i.detail));
+    if (!i.available && i.reason) card.append(el("div", "st warn", i.reason));
+    const det = document.createElement("details"), sum = document.createElement("summary");
+    sum.textContent = "Command"; det.append(sum, el("pre", "", (i.needs_root ? "as root, asks for your password:\n" : "") + i.command));
+    card.append(det); box.append(card);
+  }
+  const n = updItems.filter(i => updOn.has(i.id)).length;
+  $("#upd-sum").textContent = n ? `${n} selected` : "Nothing selected";
+  const go = $<HTMLButtonElement>("#upd-go"); go.disabled = !n; go.textContent = n ? `Update selected (${n})` : "Update selected";
+}
+
+function startUpdate(ids: string[]) {
+  return runProgress({
+    title: "Updating",
+    label: id => updItems.find(i => i.id === id)?.name ?? id,
+    start: () => api.runUpdates(ids),
+    retry: again => { void startUpdate(again); },
+    rootStep: id => !!updItems.find(i => i.id === id)?.needs_root,
+    after: loadUpdates,
+  });
+}
+$("#upd-go").onclick = () => { void startUpdate([...updOn]); };
+$("#upd-rescan").onclick = () => { void loadUpdates(); };
+
+// ---- doctor ----
+let docItems: Finding[] = [], docLoaded = false;
+
+async function loadDoctor() {
+  $("#doc-list").replaceChildren(el("div", "mu", "Running checks…")); $("#doc-sum").textContent = "";
+  try { docItems = await api.scanDoctor(); }
+  catch (e) { $("#doc-list").replaceChildren(el("div", "st warn", `! Checks failed: ${e}`)); return; }
+  docLoaded = true; renderDoctor();
+}
+
+function startFix(fix: FixInfo) {
+  return runProgress({
+    title: "Fixing", label: () => fix.label,
+    start: () => api.runFix(fix.id),
+    rootStep: () => fix.kind === "root",
+    after: loadDoctor,
+  });
+}
+
+function fixRow(fix: FixInfo) {
+  const row = el("div", "fixrow");
+  if (fix.kind === "copy") {
+    const btn = el("button", "b2 mini", "Copy");
+    btn.onclick = async () => { try { await navigator.clipboard.writeText(fix.command); btn.textContent = "Copied"; } catch { btn.textContent = "Could not copy"; } };
+    row.append(el("pre", "", fix.command), btn);
+  } else {
+    const btn = el("button", "bt", fix.label);
+    if (fix.kind === "root") row.append(el("div", "mu", `Runs as root (password prompt): ${fix.command}`)); else row.append(el("div", "mu", `Runs: ${fix.command}`));
+    btn.onclick = async () => { if (fix.warning && !(await api.confirm(fix.warning))) return; void startFix(fix); };
+    row.append(btn);
+  }
+  return row;
+}
+
+function renderDoctor() {
+  const box = $("#doc-list"); box.replaceChildren();
+  const mark = { ok: "✓", warn: "!", fail: "✕", info: "i" };
+  for (const f of docItems) {
+    const card = el("div", "card"), head = el("div", "row");
+    head.append(el("span", "st " + f.status, mark[f.status]), el("b", "", f.title)); card.append(head);
+    if (f.detail) card.append(el("div", "mu", f.detail));
+    if (f.advice) card.append(el("div", "mu", f.advice));
+    if (f.fix) card.append(fixRow(f.fix));
+    box.append(card);
+  }
+  const count = (s: string) => docItems.filter(f => f.status === s).length;
+  $("#doc-sum").textContent = `${count("fail")} failed, ${count("warn")} warnings, ${count("ok")} ok`;
+}
+$("#doc-rescan").onclick = () => { void loadDoctor(); };
+
+// ---- git and github ----
+let gitState: GitState | null = null, gitLoaded = false;
+let gitDraft: { name?: string; email?: string } = {}; // typed but not yet saved, kept across redraws
+const gitNotes: Record<string, { text: string; bad: boolean }> = {};
+const note = (card: string, text: string, bad = false) => { gitNotes[card] = { text, bad }; };
+
+async function loadGit() {
+  if (!gitState) $("#git-list").replaceChildren(el("div", "mu", "Loading…"));
+  try { gitState = await api.gitState(); }
+  catch (e) { $("#git-list").replaceChildren(el("div", "st warn", `! Could not read Git settings: ${e}`)); return; }
+  gitLoaded = true; renderGit();
+}
+
+/** Runs an action, remembers its message for the card, and redraws. */
+async function gitAct(card: string, work: () => Promise<string | void>) {
+  note(card, "Working…");
+  renderGit();
+  try { const r = await work(); note(card, typeof r === "string" && r ? r : "Done."); }
+  catch (e) { note(card, `${e}`, true); }
+  await loadGit();
+}
+
+function gitCard(id: string, title: string, intro: string) {
+  const card = el("div", "card");
+  card.append(el("b", "", title), el("div", "mu", intro));
+  const n = gitNotes[id]; if (n) card.append(el("div", n.bad ? "st warn" : "mu", n.text));
+  return card;
+}
+
+function fieldInput(type: "text" | "email" | "password", value: string, label: string) {
+  const i = document.createElement("input"); i.type = type; i.value = value; i.placeholder = label; i.setAttribute("aria-label", label); return i;
+}
+
+function startGhLogin(protocol: "ssh" | "https") {
+  return runProgress({
+    title: "Sign in to GitHub",
+    label: id => id === "gh-git" ? "Set up git credentials" : "GitHub sign-in",
+    start: () => api.ghLogin(protocol),
+    after: loadGit,
+    onLog: line => {
+      const m = /\b[A-Z0-9]{4}-[A-Z0-9]{4}\b/.exec(line); if (!m) return;
+      const box = $("#codebox"), open = el("button", "bt", "Open github.com/login/device");
+      open.onclick = () => { void api.openUrl("github-device"); };
+      box.replaceChildren(el("div", "", "Enter this one-time code on GitHub:"), el("b", "", m[0]), open); box.hidden = false;
+    },
+  });
+}
+
+function renderGit() {
+  const s = gitState, box = $("#git-list"); if (!s) return;
+  box.replaceChildren();
+  if (!s.git_installed) { box.append(el("div", "st warn", "! Git is not installed. Install it from Setup first.")); return; }
+
+  // 1. identity
+  const idc = gitCard("id", "1. Your identity", `Git writes this into every commit. Git ${s.git_version.replace("git version ", "")}.`);
+  const name = fieldInput("text", gitDraft.name ?? s.name, "Your name"), email = fieldInput("email", gitDraft.email ?? s.email, "you@example.com");
+  name.oninput = () => { gitDraft.name = name.value; }; email.oninput = () => { gitDraft.email = email.value; };
+  const main = document.createElement("input"); main.type = "checkbox"; main.checked = s.default_branch !== "master";
+  const mainRow = el("label", "row"); mainRow.append(main, el("span", "", "Name new repositories' first branch main"));
+  const save = el("button", "bt", "Save identity"); save.onclick = () => { void gitAct("id", async () => { await api.gitSaveIdentity(name.value, email.value, main.checked); gitDraft = {}; return "Saved."; }); };
+  idc.append(name, email, mainRow, save); box.append(idc);
+
+  // 2. ssh key
+  const kc = gitCard("key", "2. SSH key", "Lets you push to GitHub without typing a password. Only the public half is ever shown or sent.");
+  if (!s.ssh_installed) kc.append(el("div", "st warn", "! ssh-keygen is not installed (install the OpenSSH client)."));
+  else if (s.keys.length) {
+    for (const k of s.keys) {
+      kc.append(el("div", "mu", `${k.path} ${k.fingerprint}`), el("pre", "", k.public));
+      const row = el("div", "btns"), copy = el("button", "b2 mini", "Copy public key");
+      copy.onclick = async () => { try { await navigator.clipboard.writeText(k.public); copy.textContent = "Copied"; } catch { copy.textContent = "Could not copy"; } };
+      row.append(copy); kc.append(row);
+    }
+    const row = el("div", "btns"), addPage = el("button", "b2", "Add it on GitHub (browser)"), test = el("button", "b2", "Test connection to GitHub");
+    addPage.onclick = () => { void api.openUrl("github-ssh").catch(e => { note("key", `${e}`, true); renderGit(); }); };
+    test.onclick = () => { void gitAct("key", async () => { const r = await api.gitTestSsh(); if (!r.ok) throw new Error(r.output || "No answer from GitHub."); return r.output; }); };
+    row.append(addPage, test); kc.append(row);
+  } else {
+    const pass = fieldInput("password", "", "Passphrase (optional)");
+    const gen = el("button", "bt", "Create an SSH key");
+    kc.append(el("div", "mu", "An ed25519 key is created as ~/.ssh/id_ed25519. A passphrase protects it if the file is ever copied. It is passed to ssh-keygen as an argument, so other users on a shared machine could see it for a moment."), pass, gen);
+    gen.onclick = () => { void gitAct("key", () => api.gitGenerateKey(email.value || s.email, pass.value)); };
+  }
+  box.append(kc);
+
+  // 3. github sign-in
+  const gc = gitCard("gh", "3. GitHub sign-in", "Uses the GitHub CLI so you can add keys, clone private repositories and push over HTTPS.");
+  if (!s.gh_installed) gc.append(el("div", "st warn", "! GitHub CLI is not installed. Tick it under Git and hosting in Setup."));
+  else if (s.gh_user) {
+    gc.append(el("div", "st ok", `✓ Signed in as ${s.gh_user}`));
+    const row = el("div", "btns");
+    for (const k of s.keys.slice(0, 1)) {
+      const add = el("button", "b2", "Add my SSH key to GitHub");
+      add.onclick = () => { void gitAct("gh", () => api.gitAddKey(k.path, "authentication")); };
+      row.append(add);
+    }
+    const cred = el("button", "b2", "Use my sign-in for HTTPS git"); cred.onclick = () => { void gitAct("gh", () => api.gitSetupCredentials()); };
+    row.append(cred); gc.append(row);
+  } else {
+    const sel = document.createElement("select"); sel.setAttribute("aria-label", "Protocol");
+    for (const [v, t] of [["https", "HTTPS (works everywhere)"], ["ssh", "SSH (uses your key)"]]) { const o = document.createElement("option"); o.value = v; o.textContent = t; sel.append(o); }
+    const go = el("button", "bt", "Sign in with browser"); go.onclick = () => { void startGhLogin(sel.value as "ssh" | "https"); };
+    gc.append(sel, go);
+  }
+  box.append(gc);
+
+  // 4. signed commits
+  const sc = gitCard("sign", "4. Signed commits", "Marks your commits as really yours, using your SSH key (needs Git 2.34 or newer).");
+  if (!s.keys.length) sc.append(el("div", "mu", "Create an SSH key first."));
+  else {
+    sc.append(el("div", s.signing ? "st ok" : "mu", s.signing ? `✓ On, using ${s.signing_key}` : "Off"));
+    const sel = document.createElement("select"); sel.setAttribute("aria-label", "Key to sign with");
+    for (const k of s.keys) { const o = document.createElement("option"); o.value = k.path; o.textContent = k.path; if (k.path === s.signing_key) o.selected = true; sel.append(o); }
+    const row = el("div", "btns"), on = el("button", "bt", s.signing ? "Update" : "Turn on"), off = el("button", "b2", "Turn off");
+    on.onclick = () => { void gitAct("sign", async () => { await api.gitSetSigning(true, sel.value, email.value || s.email); return "Signed commits are on."; }); };
+    off.onclick = () => { void gitAct("sign", async () => { await api.gitSetSigning(false, "", ""); return "Signed commits are off."; }); };
+    row.append(on); if (s.signing) row.append(off); sc.append(sel, row);
+    if (s.gh_user) {
+      const reg = el("button", "b2", "Also add it to GitHub as a signing key");
+      reg.onclick = () => { void gitAct("sign", () => api.gitAddKey(sel.value, "signing")); };
+      sc.append(reg, el("div", "mu", "GitHub shows a Verified badge once the key is added as a signing key. If it reports a missing permission, run: gh auth refresh -h github.com -s admin:ssh_signing_key"));
+    }
+  }
+  box.append(sc);
+}
+
+// ---- shell setup ----
+let shState: ShellState | null = null, shLoaded = false, shTarget: "zsh" | "bash" = "zsh";
+let shOpts: ShOpts | null = null;
+const shNote: { text: string; bad: boolean } = { text: "", bad: false };
+let shPreview = "";
+
+const SH_OPTS: Array<{ key: keyof ShOpts; label: string; tool?: string; avail?: keyof ShellState["available"]; zshOnly?: boolean }> = [
+  { key: "history", label: "Better history: bigger, shared between terminals, no duplicates" },
+  { key: "completion", label: "Smarter tab completion" },
+  { key: "starship", label: "Starship prompt", tool: "starship", avail: "starship" },
+  { key: "autosuggestions", label: "Suggestions from your history as you type", tool: "zsh-autosuggestions", avail: "autosuggestions", zshOnly: true },
+  { key: "syntax_highlighting", label: "Syntax highlighting while you type", tool: "zsh-syntax-highlighting", avail: "syntax_highlighting", zshOnly: true },
+  { key: "zoxide", label: "zoxide: jump to folders with z", tool: "zoxide", avail: "zoxide" },
+  { key: "fzf", label: "fzf: Ctrl+R history search, Ctrl+T file search", tool: "fzf", avail: "fzf" },
+  { key: "direnv", label: "direnv: per-folder environments", tool: "direnv", avail: "direnv" },
+  { key: "mise", label: "mise: activate the version manager", tool: "mise", avail: "mise" },
+  { key: "aliases", label: "Handy aliases: ls and ll (eza if installed), .., bat and fd names on Debian" },
+  { key: "git_aliases", label: "Git aliases: gs, gd, gl, ga, gc, gco, gpl, gps" },
+];
+
+async function loadShell() {
+  if (!shState) $("#shell-list").replaceChildren(el("div", "mu", "Loading…"));
+  try { shState = await api.shellState(); }
+  catch (e) { $("#shell-list").replaceChildren(el("div", "st warn", `! Could not read shell settings: ${e}`)); return; }
+  if (!shOpts) {
+    const a = shState.available;
+    shOpts = { history: true, completion: true, aliases: true, git_aliases: false, starship: a.starship, autosuggestions: a.autosuggestions, syntax_highlighting: a.syntax_highlighting, zoxide: a.zoxide, fzf: a.fzf, direnv: a.direnv, mise: a.mise };
+    if (shState.login_shell.endsWith("bash") && !shState.zsh_installed) shTarget = "bash";
+  }
+  shLoaded = true; renderShell();
+}
+
+/** Ticks tools in Setup and switches there, so they can be installed with the usual review. */
+function tickInSetup(ids: string[]) {
+  applyImport({ name: "", roles: [], tools: ids, unknown_roles: [], unknown_tools: [] });
+  $("#toast").textContent = `Ticked ${ids.map(name).join(", ")}. Review the plan to install ${ids.length === 1 ? "it" : "them"}.`;
+  showView("setup");
+}
+
+function renderShell() {
+  const s = shState, o = shOpts, box = $("#shell-list"); if (!s || !o) return;
+  box.replaceChildren();
+
+  // 1. login shell
+  const lc = el("div", "card");
+  lc.append(el("b", "", "1. Login shell"), el("div", "mu", `Your login shell is ${s.login_shell || "unknown"}. Terminals start it by default.`));
+  if (!s.zsh_installed) {
+    const b = el("button", "b2", "Tick zsh in Setup"); b.onclick = () => tickInSetup(["zsh"]);
+    lc.append(el("div", "st warn", "! zsh is not installed."), b);
+  } else if (!s.login_shell.endsWith("/zsh")) {
+    const b = el("button", "b2", "Make zsh my login shell");
+    b.onclick = () => { void runProgress({ title: "Changing login shell", label: () => "Login shell", start: () => api.setLoginShell("zsh"), rootStep: () => true, after: loadShell }); };
+    lc.append(b, el("div", "mu", "Asks for your password. Log out and back in afterwards."));
+  } else lc.append(el("div", "st ok", "✓ zsh is your login shell"));
+  box.append(lc);
+
+  // 2. configuration
+  const cc = el("div", "card");
+  cc.append(el("b", "", "2. What to add"));
+  const sel = document.createElement("select"); sel.setAttribute("aria-label", "Shell to configure");
+  for (const v of ["zsh", "bash"] as const) { const op = document.createElement("option"); op.value = v; op.textContent = `${v} (${v === "zsh" ? "~/.zshrc" : "~/.bashrc"})`; op.selected = v === shTarget; sel.append(op); }
+  sel.onchange = () => { shTarget = sel.value as "zsh" | "bash"; shPreview = ""; shNote.text = ""; renderShell(); };
+  cc.append(sel);
+  const missing: string[] = [];
+  for (const d of SH_OPTS) {
+    if (d.zshOnly && shTarget !== "zsh") continue;
+    const row = el("label", "row"), cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = o[d.key];
+    cb.onchange = () => { o[d.key] = cb.checked; shPreview = ""; renderShell(); };
+    const lack = !!d.avail && !s.available[d.avail];
+    row.append(cb, el("span", "", d.label), el("span", "tag", lack ? "not installed" : ""));
+    if (lack && o[d.key] && d.tool) missing.push(d.tool);
+    cc.append(row);
+  }
+  const rc = s.files.find(f => f.shell === shTarget);
+  if (rc?.damaged) cc.append(el("div", "st warn", `! ${rc.damaged}`));
+  const btns = el("div", "btns"), prev = el("button", "b2", "Preview"), apply = el("button", "bt", rc?.has_block ? "Update" : "Apply"), rem = el("button", "b2", "Remove");
+  const run = (work: () => Promise<string | void>) => async () => {
+    shNote.text = "Working…"; shNote.bad = false; renderShell();
+    try { const r = await work(); shNote.text = typeof r === "string" && r ? r : "Done."; shNote.bad = false; }
+    catch (e) { shNote.text = `${e}`; shNote.bad = true; }
+    shPreview = ""; shState = await api.shellState(); renderShell();
+  };
+  prev.onclick = async () => {
+    try {
+      const p = await api.shellPreview(shTarget, o);
+      shPreview = `${p.exists ? (p.had_block ? "Replaces the DevSetup block in" : "Adds this block to the end of") : "Creates"} ${p.path}:\n\n${p.block}` + (p.warnings.length ? `\n\nHeads-up:\n- ${p.warnings.join("\n- ")}` : "");
+      shNote.text = ""; renderShell();
+    } catch (e) { shNote.text = `${e}`; shNote.bad = true; renderShell(); }
+  };
+  apply.onclick = run(() => api.shellApply(shTarget, o));
+  rem.onclick = run(() => api.shellRemove(shTarget));
+  btns.append(prev, apply); if (rc?.has_block) btns.append(rem);
+  cc.append(btns);
+  if (shNote.text) cc.append(el("div", shNote.bad ? "st warn" : "mu", shNote.text));
+  if (shPreview) cc.append(el("pre", "", shPreview));
+  box.append(cc);
+
+  // 3. missing tools
+  if (missing.length) {
+    const mc = el("div", "card"), b = el("button", "b2", "Tick them in Setup");
+    b.onclick = () => tickInSetup(missing);
+    mc.append(el("b", "", "3. Install what is missing"), el("div", "mu", `Needed for the options you ticked: ${missing.map(name).join(", ")}. The lines are safe without them (they only act when the tool exists), but nothing happens until you install them.`), b);
+    box.append(mc);
+  }
+}
+
+type View = "setup" | "clean" | "updates" | "doctor" | "git" | "shell";
+function showView(v: View) {
+  $("#v-setup").hidden = v !== "setup"; $("#v-clean").hidden = v !== "clean"; $("#v-updates").hidden = v !== "updates"; $("#v-doctor").hidden = v !== "doctor"; $("#v-git").hidden = v !== "git"; $("#v-shell").hidden = v !== "shell";
   document.querySelectorAll<HTMLButtonElement>("#nav button").forEach(b => {
     if (b.dataset.v === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
   if (v === "clean" && !cleanLoaded) void loadClean();
+  if (v === "updates" && !updLoaded) void loadUpdates();
+  if (v === "doctor" && !docLoaded) void loadDoctor();
+  if (v === "git" && !gitLoaded) void loadGit();
+  if (v === "shell" && !shLoaded) void loadShell();
 }
-document.querySelectorAll<HTMLButtonElement>("#nav button").forEach(b => { b.onclick = () => showView(b.dataset.v as "setup" | "clean"); });
+document.querySelectorAll<HTMLButtonElement>("#nav button").forEach(b => { b.onclick = () => showView(b.dataset.v as View); });
 
 
 initTheme();

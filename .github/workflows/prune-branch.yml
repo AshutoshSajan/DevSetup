@@ -1,0 +1,72 @@
+name: Prune merged heads
+
+# Deletes a task branch from origin once its PR is merged - but only with
+# proof: the branch must exist, be on the pruning allowlist, never be a trunk,
+# and a compare-API check must prove the head commit sits inside the base
+# trunk's history ('behind'/'identical' statuses). Any doubt leaves the branch
+# in place. Payload-only job (no checkout at all; the proof is authoritative
+# rather than read from a guessed shallow graph). Single writer for the
+# "remove merged branches" concern: no inline prune step may exist elsewhere.
+on:
+  pull_request:
+    types: [closed]
+    branches: [dev, main]
+
+permissions: {}
+
+jobs:
+  prune-merged-head:
+    if: >-
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo != null &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Prove the landing and delete the head branch
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          API_URL: ${{ github.api_url }}
+          REPO: ${{ github.repository }}
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -euo pipefail
+
+          # Trunks are never deletable, no matter what arrived.
+          case "$HEAD_REF" in
+            main|dev)
+              echo "Refusing: '$HEAD_REF' is a trunk. Trunk deletions are not an option."
+              exit 0 ;;
+          esac
+
+          # Only allowlisted task-branch namespaces are touched.
+          case "$HEAD_REF" in
+            feat/*|fix/*|chore/*|ci/*|docs/*|perf/*|refactor/*|test/*|release/*|dependabot/*) ;;
+            *)
+              echo "'$HEAD_REF' is outside the pruning allowlist - left in place."
+              exit 0 ;;
+          esac
+
+          # The branch must still exist (auto-delete may already have won).
+          if ! gh api "repos/$REPO/git/ref/heads/$HEAD_REF" >/dev/null 2>&1; then
+            echo "Branch '$HEAD_REF' is already gone from origin - nothing to prune."
+            exit 0
+          fi
+
+          # Ancestry proof: the head commit must be contained in the base
+          # trunk NOW. The compare API reports 'behind' or 'identical' exactly
+          # for that relationship, without depending on a local (possibly
+          # shallow) clone's graph.
+          status=$(gh api "repos/$REPO/compare/$BASE_REF...$HEAD_SHA" --jq .status)
+          case "$status" in
+            behind|identical) ;;
+            *)
+              echo "Ancestry of '$HEAD_SHA' into '$BASE_REF' could not be proven (compare status: $status) - leaving it alone."
+              exit 0 ;;
+          esac
+
+          gh api -X DELETE "repos/$REPO/git/refs/heads/$HEAD_REF"
+          echo "Pruned merged branch '$HEAD_REF'."
