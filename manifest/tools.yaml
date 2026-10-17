@@ -39,16 +39,16 @@ tools:
   - { id: "rustrover", name: "RustRover", group: "Editors and IDEs", roles: [systems], method: { type: flatpak, app_id: "com.jetbrains.RustRover" }, requires: ["flatpak"] }
   - { id: "datagrip", name: "DataGrip", group: "Editors and IDEs", roles: [dba], method: { type: flatpak, app_id: "com.jetbrains.DataGrip" }, requires: ["flatpak"] }
   - { id: "androidstudio", name: "Android Studio", group: "Editors and IDEs", roles: [mobile], method: { type: flatpak, app_id: "com.google.AndroidStudio" }, requires: ["flatpak"] }
-  - { id: "mise", name: "mise (version manager)", group: "Languages and runtimes", roles: [any], method: { type: script, url: "https://mise.run", uninstall: "rm -f \"${HOME:?}/.local/bin/mise\"" }, check: "mise" }
+  - { id: "mise", name: "mise (version manager)", group: "Languages and runtimes", roles: [any], method: { type: script, url: "https://mise.run", uninstall: "rm -f \"${HOME:?}/.local/bin/mise\"", update: "mise self-update -y" }, check: "mise" }
   - { id: "node", name: "Node.js (via mise)", group: "Languages and runtimes", roles: [web, backend, mobile, ai, learner, devops], method: { type: mise, tool: "node" }, check: "node", requires: ["mise"] }
   - { id: "pnpm", name: "pnpm", group: "Languages and runtimes", roles: [web, backend], method: { type: npm, package: "pnpm" }, check: "pnpm", requires: ["node"] }
-  - { id: "bun", name: "Bun", group: "Languages and runtimes", roles: [web, backend], method: { type: script, url: "https://bun.sh/install", uninstall: "rm -rf \"${HOME:?}/.bun\"" }, check: "bun" }
-  - { id: "deno", name: "Deno", group: "Languages and runtimes", roles: [web, backend], method: { type: script, url: "https://deno.land/install.sh", uninstall: "rm -rf \"${HOME:?}/.deno\"" }, check: "deno" }
+  - { id: "bun", name: "Bun", group: "Languages and runtimes", roles: [web, backend], method: { type: script, url: "https://bun.sh/install", uninstall: "rm -rf \"${HOME:?}/.bun\"", update: "bun upgrade" }, check: "bun" }
+  - { id: "deno", name: "Deno", group: "Languages and runtimes", roles: [web, backend], method: { type: script, url: "https://deno.land/install.sh", uninstall: "rm -rf \"${HOME:?}/.deno\"", update: "deno upgrade" }, check: "deno" }
   - { id: "python", name: "Python (via mise)", group: "Languages and runtimes", roles: [backend, data, ai, security, learner, devops], method: { type: mise, tool: "python" }, check: "python", requires: ["mise"] }
-  - { id: "uv", name: "uv (Python packages)", group: "Languages and runtimes", roles: [backend, data, ai, learner], method: { type: script, url: "https://astral.sh/uv/install.sh", uninstall: "rm -f \"${HOME:?}/.local/bin/uv\" \"${HOME:?}/.local/bin/uvx\"" }, check: "uv" }
+  - { id: "uv", name: "uv (Python packages)", group: "Languages and runtimes", roles: [backend, data, ai, learner], method: { type: script, url: "https://astral.sh/uv/install.sh", uninstall: "rm -f \"${HOME:?}/.local/bin/uv\" \"${HOME:?}/.local/bin/uvx\"", update: "uv self update" }, check: "uv" }
   - { id: "pipx", name: "pipx", group: "Languages and runtimes", roles: [data, ai, security], method: { type: apt, package: "pipx" }, check: "pipx" }
   - { id: "go", name: "Go (via mise)", group: "Languages and runtimes", roles: [backend, devops, systems], method: { type: mise, tool: "go" }, check: "go", requires: ["mise"] }
-  - { id: "rust", name: "Rust (rustup)", group: "Languages and runtimes", roles: [systems, backend, game], method: { type: script, url: "https://sh.rustup.rs", args: ["-y"], uninstall: "rustup self uninstall -y" }, check: "rustc" }
+  - { id: "rust", name: "Rust (rustup)", group: "Languages and runtimes", roles: [systems, backend, game], method: { type: script, url: "https://sh.rustup.rs", args: ["-y"], uninstall: "rustup self uninstall -y", update: "rustup update" }, check: "rustc" }
   - { id: "java", name: "OpenJDK", group: "Languages and runtimes", roles: [backend, mobile], method: { type: apt, package: "default-jdk" }, check: "javac" }
   - { id: "ruby", name: "Ruby (via mise)", group: "Languages and runtimes", roles: [web, backend], method: { type: mise, tool: "ruby" }, check: "ruby", requires: ["mise"] }
   - { id: "php", name: "PHP", group: "Languages and runtimes", roles: [web, backend], method: { type: apt, package: "php-cli" }, check: "php" }
@@ -95,8 +95,8 @@ tools:
   - { id: "chrome", name: "Google Chrome", group: "API and web", roles: [web], method: { type: flatpak, app_id: "com.google.Chrome" }, requires: ["flatpak"] }
   - { id: "adb", name: "Android platform tools (adb)", group: "Mobile", roles: [mobile], method: { type: apt, package: "adb" }, check: "adb" }
   - { id: "scrcpy", name: "scrcpy (screen mirroring)", group: "Mobile", roles: [mobile], method: { type: apt, package: "scrcpy" }, check: "scrcpy" }
-  - { id: "claude", name: "Claude Code", group: "AI harnesses", roles: [ai], method: { type: script, url: "https://claude.ai/install.sh", uninstall: "rm -f \"${HOME:?}/.local/bin/claude\" && rm -rf \"${HOME:?}/.local/share/claude\"" }, check: "claude" }
-  - { id: "opencode", name: "OpenCode", group: "AI harnesses", roles: [ai], method: { type: script, url: "https://opencode.ai/install", uninstall: "rm -rf \"${HOME:?}/.opencode\"" }, check: "opencode" }
+  - { id: "claude", name: "Claude Code", group: "AI harnesses", roles: [ai], method: { type: script, url: "https://claude.ai/install.sh", uninstall: "rm -f \"${HOME:?}/.local/bin/claude\" && rm -rf \"${HOME:?}/.local/share/claude\"", update: "claude update" }, check: "claude" }
+  - { id: "opencode", name: "OpenCode", group: "AI harnesses", roles: [ai], method: { type: script, url: "https://opencode.ai/install", uninstall: "rm -rf \"${HOME:?}/.opencode\"", update: "opencode upgrade" }, check: "opencode" }
   - { id: "codex", name: "Codex CLI", group: "AI harnesses", roles: [ai], method: { type: npm, package: "@openai/codex" }, check: "codex", requires: ["node"] }
   - { id: "gemini", name: "Gemini CLI", group: "AI harnesses", roles: [ai], method: { type: npm, package: "@google/gemini-cli" }, check: "gemini", requires: ["node"] }
   - { id: "aider", name: "Aider", group: "AI harnesses", roles: [ai], method: { type: pipx, package: "aider-chat" }, check: "aider", requires: ["pipx"] }

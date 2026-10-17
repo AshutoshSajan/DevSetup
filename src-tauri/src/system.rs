@@ -18,16 +18,22 @@ pub fn distro() -> Distro {
 
 pub fn home() -> Option<PathBuf> { std::env::var_os("HOME").map(PathBuf::from) }
 
-pub fn on_path(cmd: &str) -> bool {
+fn search_dirs() -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = std::env::var_os("PATH").map(|p| std::env::split_paths(&p).collect()).unwrap_or_default();
     if let Some(h) = home() {
         for d in [".local/bin", ".local/share/mise/shims", ".cargo/bin", ".bun/bin"] { dirs.push(h.join(d)); }
     }
-    dirs.iter().any(|d| {
-        let p = d.join(cmd);
-        p.is_file() && std::fs::metadata(&p).map(|m| m.permissions().mode() & 0o111 != 0).unwrap_or(false)
+    dirs
+}
+
+/// First executable called `cmd` in PATH or in the folders DevSetup installs tools into.
+pub fn find_in_path(cmd: &str) -> Option<PathBuf> {
+    search_dirs().into_iter().map(|d| d.join(cmd)).find(|p| {
+        p.is_file() && std::fs::metadata(p).map(|m| m.permissions().mode() & 0o111 != 0).unwrap_or(false)
     })
 }
+
+pub fn on_path(cmd: &str) -> bool { find_in_path(cmd).is_some() }
 
 /// Names of installed Debian/Ubuntu packages, read once from the dpkg status file.
 pub fn apt_installed() -> HashSet<String> {
