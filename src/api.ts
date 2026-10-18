@@ -31,6 +31,9 @@ export type VsExt = { id: string; name: string };
 export type VsPack = { id: string; name: string; description: string; roles: string[]; extensions: VsExt[] };
 export type VsEditor = { id: string; name: string; installed: string[] };
 export type VsState = { editors: VsEditor[]; packs: VsPack[] };
+export type Gpu = { vendor: string; id: string; name: string; driver: string };
+export type Advice = { level: "ok" | "info" | "warn"; title: string; detail: string; steps: string[]; commands: string[] };
+export type DriverReport = { gpus: Gpu[]; secure_boot: string; nvidia_driver: string | null; distro: string; advice: Advice[] };
 export type Done = { ok: boolean; failed: number; cancelled: boolean };
 export const api = {
   system: () => invoke<Distro>("get_system"),
@@ -40,6 +43,7 @@ export const api = {
   preflight: (install: string[], remove: string[], strict: boolean) => invoke<Check[]>("preflight", { install, remove, strict }),
   details: (install: string[], remove: string[], strict: boolean) => invoke<Details>("plan_details", { install, remove, strict }),
   exportSetup: (name: string, roles: string[], tools: string[], notes: string[] = []) => invoke<string>("export_setup", { name, roles, tools, notes }),
+  scanDrivers: () => invoke<DriverReport>("scan_drivers"),
   vscodeState: () => invoke<VsState>("vscode_state"),
   vscodeInstall: (editor: string, ids: string[]) => invoke<void>("vscode_install", { editor, ids }),
   shellState: () => invoke<ShellState>("shell_state"),

@@ -1,5 +1,5 @@
 import "./style.css";
-import { api, Tool, Role, Plan, Imported, Scan, CleanItem, UpdateItem, Finding, FixInfo, GitState, ShellState, ShOpts, VsState } from "./api";
+import { api, Tool, Role, Plan, Imported, Scan, CleanItem, UpdateItem, Finding, FixInfo, GitState, ShellState, ShOpts, VsState, DriverReport } from "./api";
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T;
 const el = (tag: string, cls = "", text = "") => { const e = document.createElement(tag); e.className = cls; e.textContent = text; return e; };
@@ -815,9 +815,45 @@ $("#vs-go").onclick = () => {
   void startVs(ids);
 };
 
-type View = "setup" | "clean" | "updates" | "doctor" | "git" | "shell" | "vscode";
+// ---- drivers (read-only) ----
+let drvReport: DriverReport | null = null, drvLoaded = false;
+
+async function loadDrivers() {
+  $("#drv-list").replaceChildren(el("div", "mu", "Checking your hardware…")); $("#drv-sum").textContent = "";
+  try { drvReport = await api.scanDrivers(); }
+  catch (e) { $("#drv-list").replaceChildren(el("div", "st warn", `! Could not read your hardware: ${e}`)); return; }
+  drvLoaded = true; renderDrivers();
+}
+
+function renderDrivers() {
+  const r = drvReport, box = $("#drv-list"); if (!r) return;
+  box.replaceChildren();
+  const hw = el("div", "card"); hw.append(el("b", "", "Your hardware"));
+  if (!r.gpus.length) hw.append(el("div", "mu", "No graphics device found."));
+  for (const g of r.gpus) hw.append(el("div", "mu", `${g.vendor}: ${g.name} (${g.id}), driver: ${g.driver || "none"}`));
+  hw.append(el("div", "mu", `System: ${r.distro || "unknown"}. Secure Boot: ${r.secure_boot}.`));
+  box.append(hw);
+  const mark = { ok: "✓", info: "i", warn: "!" };
+  for (const a of r.advice) {
+    const card = el("div", "card"), head = el("div", "row");
+    head.append(el("span", "st " + a.level, mark[a.level]), el("b", "", a.title)); card.append(head);
+    if (a.detail) card.append(el("div", "mu", a.detail));
+    a.steps.forEach((s, i) => card.append(el("div", "mu", `${i + 1}. ${s}`)));
+    if (a.commands.length) {
+      const text = a.commands.join("\n"), copy = el("button", "b2 mini", "Copy commands");
+      copy.onclick = async () => { try { await navigator.clipboard.writeText(text); copy.textContent = "Copied"; } catch { copy.textContent = "Could not copy"; } };
+      const wrap = el("div", "fixrow"); wrap.append(el("pre", "", text), copy); card.append(wrap);
+    }
+    box.append(card);
+  }
+  const warns = r.advice.filter(a => a.level === "warn").length;
+  $("#drv-sum").textContent = warns ? `${warns} thing${warns === 1 ? "" : "s"} to look at` : "Nothing needs attention";
+}
+$("#drv-rescan").onclick = () => { void loadDrivers(); };
+
+type View = "setup" | "clean" | "updates" | "doctor" | "git" | "shell" | "vscode" | "drivers";
 function showView(v: View) {
-  $("#v-setup").hidden = v !== "setup"; $("#v-clean").hidden = v !== "clean"; $("#v-updates").hidden = v !== "updates"; $("#v-doctor").hidden = v !== "doctor"; $("#v-git").hidden = v !== "git"; $("#v-shell").hidden = v !== "shell"; $("#v-vscode").hidden = v !== "vscode";
+  $("#v-setup").hidden = v !== "setup"; $("#v-clean").hidden = v !== "clean"; $("#v-updates").hidden = v !== "updates"; $("#v-doctor").hidden = v !== "doctor"; $("#v-git").hidden = v !== "git"; $("#v-shell").hidden = v !== "shell"; $("#v-vscode").hidden = v !== "vscode"; $("#v-drivers").hidden = v !== "drivers";
   document.querySelectorAll<HTMLButtonElement>("#nav button").forEach(b => {
     if (b.dataset.v === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
@@ -827,6 +863,7 @@ function showView(v: View) {
   if (v === "git" && !gitLoaded) void loadGit();
   if (v === "shell" && !shLoaded) void loadShell();
   if (v === "vscode" && !vsLoaded) void loadVs();
+  if (v === "drivers" && !drvLoaded) void loadDrivers();
 }
 document.querySelectorAll<HTMLButtonElement>("#nav button").forEach(b => { b.onclick = () => showView(b.dataset.v as View); });
 

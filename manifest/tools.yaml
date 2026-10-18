@@ -95,6 +95,7 @@ tools:
   - { id: "chrome", name: "Google Chrome", group: "API and web", roles: [web], method: { type: flatpak, app_id: "com.google.Chrome" }, requires: ["flatpak"] }
   - { id: "adb", name: "Android platform tools (adb)", group: "Mobile", roles: [mobile], method: { type: apt, package: "adb" }, check: "adb" }
   - { id: "scrcpy", name: "scrcpy (screen mirroring)", group: "Mobile", roles: [mobile], method: { type: apt, package: "scrcpy" }, check: "scrcpy" }
+  - { id: "android-udev", name: "Android udev rules (adb access)", group: "Mobile", roles: [mobile], method: { type: apt, package: "android-sdk-platform-tools-common" } }
   - { id: "claude", name: "Claude Code", group: "AI harnesses", roles: [ai], method: { type: script, url: "https://claude.ai/install.sh", sha256: "3a68d3406cf674e17bed1733a4dcf37805e2e47d87417700007d7e1aa766a944", uninstall: "rm -f \"${HOME:?}/.local/bin/claude\" && rm -rf \"${HOME:?}/.local/share/claude\"", update: "claude update" }, check: "claude" }
   - { id: "opencode", name: "OpenCode", group: "AI harnesses", roles: [ai], method: { type: script, url: "https://opencode.ai/install", sha256: "a2dd59522b9a091b6cdb2e4870c0f2135f7da09807cd5a7e04222d4316925b72", uninstall: "rm -rf \"${HOME:?}/.opencode\"", update: "opencode upgrade" }, check: "opencode" }
   - { id: "codex", name: "Codex CLI", group: "AI harnesses", roles: [ai], method: { type: npm, package: "@openai/codex" }, check: "codex", requires: ["node"] }

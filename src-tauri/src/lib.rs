@@ -1,5 +1,6 @@
 mod clean;
 mod doctor;
+mod drivers;
 mod exec;
 mod gitwiz;
 mod helper;
@@ -172,12 +173,17 @@ async fn vscode_state() -> vscode::VsState {
 fn vscode_install(app: tauri::AppHandle, editor: String, ids: Vec<String>) -> Result<(), String> { vscode::start_install(app, editor, ids) }
 
 #[tauri::command]
+async fn scan_drivers() -> drivers::Report {
+    tauri::async_runtime::spawn_blocking(drivers::scan).await.unwrap_or_default()
+}
+
+#[tauri::command]
 fn cancel_run() { exec::cancel() }
 
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_system, get_manifest, list_tools, make_plan, run_plan, cancel_run, preflight, plan_details, export_setup, parse_setup, read_setup_file, write_setup_file, fetch_setup, scan_machine, scan_clean, run_clean, scan_updates, run_updates, scan_doctor, run_fix, git_state, git_save_identity, git_generate_key, git_test_ssh, git_add_key, git_setup_credentials, git_set_signing, open_url, gh_login, shell_state, shell_preview, shell_apply, shell_remove, set_login_shell, vscode_state, vscode_install])
+        .invoke_handler(tauri::generate_handler![get_system, get_manifest, list_tools, make_plan, run_plan, cancel_run, preflight, plan_details, export_setup, parse_setup, read_setup_file, write_setup_file, fetch_setup, scan_machine, scan_clean, run_clean, scan_updates, run_updates, scan_doctor, run_fix, git_state, git_save_identity, git_generate_key, git_test_ssh, git_add_key, git_setup_credentials, git_set_signing, open_url, gh_login, shell_state, shell_preview, shell_apply, shell_remove, set_login_shell, vscode_state, vscode_install, scan_drivers])
         .run(tauri::generate_context!())
         .expect("error while running DevSetup");
 }
