@@ -1,5 +1,5 @@
 import "./style.css";
-import { api, Tool, Role, Plan, Imported, Scan, CleanItem, UpdateItem, Finding, FixInfo, GitState, ShellState, ShOpts } from "./api";
+import { api, Tool, Role, Plan, Imported, Scan, CleanItem, UpdateItem, Finding, FixInfo, GitState, ShellState, ShOpts, VsState } from "./api";
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T;
 const el = (tag: string, cls = "", text = "") => { const e = document.createElement(tag); e.className = cls; e.textContent = text; return e; };
@@ -741,9 +741,83 @@ function renderShell() {
   }
 }
 
-type View = "setup" | "clean" | "updates" | "doctor" | "git" | "shell";
+// ---- vs code extension packs ----
+let vsState: VsState | null = null, vsLoaded = false, vsEditor = "";
+const vsOn = new Set<string>(); // lower-case extension ids
+
+const vsName = (id: string) => vsState?.packs.flatMap(p => p.extensions).find(x => x.id.toLowerCase() === id.toLowerCase())?.name ?? id;
+const vsHave = () => new Set((vsState?.editors.find(e => e.id === vsEditor)?.installed ?? []).map(x => x.toLowerCase()));
+
+async function loadVs() {
+  if (!vsState) $("#vs-list").replaceChildren(el("div", "mu", "Looking for VS Code…"));
+  try { vsState = await api.vscodeState(); }
+  catch (e) { $("#vs-list").replaceChildren(el("div", "st warn", `! Could not look for VS Code: ${e}`)); return; }
+  if (!vsState.editors.some(e => e.id === vsEditor)) vsEditor = vsState.editors[0]?.id ?? "";
+  const have = vsHave();
+  vsOn.clear();
+  for (const p of vsState.packs) {
+    if (!p.roles.includes("all") && !p.roles.some(r => roles.has(r))) continue;
+    for (const x of p.extensions) if (!have.has(x.id.toLowerCase())) vsOn.add(x.id.toLowerCase());
+  }
+  vsLoaded = true; renderVs();
+}
+
+function renderVs() {
+  const s = vsState, box = $("#vs-list"); if (!s) return;
+  box.replaceChildren();
+  const ec = el("div", "card"); ec.append(el("b", "", "Editor"));
+  if (!s.editors.length) {
+    const b = el("button", "b2", "Tick VS Code in Setup"); b.onclick = () => tickInSetup(["vscode"]);
+    ec.append(el("div", "st warn", "! No VS Code or VSCodium found."), b);
+  } else {
+    const sel = document.createElement("select"); sel.setAttribute("aria-label", "Editor");
+    for (const e of s.editors) { const o = document.createElement("option"); o.value = e.id; o.textContent = e.name; o.selected = e.id === vsEditor; sel.append(o); }
+    sel.onchange = () => { vsEditor = sel.value; void loadVs(); };
+    ec.append(sel);
+  }
+  box.append(ec);
+
+  const have = vsHave(), usable = s.editors.length > 0;
+  for (const p of s.packs) {
+    const card = el("div", "card"), head = el("label", "row"), all = document.createElement("input");
+    const todo = p.extensions.filter(x => !have.has(x.id.toLowerCase()));
+    all.type = "checkbox"; all.disabled = !usable || !todo.length;
+    all.checked = todo.length > 0 && todo.every(x => vsOn.has(x.id.toLowerCase()));
+    all.onchange = () => { for (const x of todo) { if (all.checked) vsOn.add(x.id.toLowerCase()); else vsOn.delete(x.id.toLowerCase()); } renderVs(); };
+    head.append(all, el("b", "", p.name), el("span", "tag", `${p.extensions.length - todo.length} of ${p.extensions.length} installed`));
+    card.append(head, el("div", "mu", p.description));
+    for (const x of p.extensions) {
+      const row = el("label", "row"), cb = document.createElement("input"), done = have.has(x.id.toLowerCase());
+      cb.type = "checkbox"; cb.disabled = done || !usable; cb.checked = done || vsOn.has(x.id.toLowerCase());
+      cb.onchange = () => { if (cb.checked) vsOn.add(x.id.toLowerCase()); else vsOn.delete(x.id.toLowerCase()); renderVs(); };
+      row.append(cb, el("span", "", x.name), el("span", "tag", done ? "installed" : x.id)); card.append(row);
+    }
+    box.append(card);
+  }
+  const n = [...vsOn].filter(id => !have.has(id)).length;
+  $("#vs-sum").textContent = n ? `${n} selected` : "Nothing selected";
+  const go = $<HTMLButtonElement>("#vs-go"); go.disabled = !n || !usable; go.textContent = n ? `Install selected (${n})` : "Install selected";
+}
+
+function startVs(ids: string[]) {
+  return runProgress({
+    title: "Installing VS Code extensions",
+    label: vsName,
+    start: () => api.vscodeInstall(vsEditor, ids),
+    retry: again => { void startVs(again); },
+    after: loadVs,
+  });
+}
+$("#vs-go").onclick = () => {
+  const have = vsHave();
+  const all = vsState?.packs.flatMap(p => p.extensions) ?? [];
+  const ids = [...vsOn].filter(id => !have.has(id)).map(id => all.find(x => x.id.toLowerCase() === id)?.id ?? id);
+  void startVs(ids);
+};
+
+type View = "setup" | "clean" | "updates" | "doctor" | "git" | "shell" | "vscode";
 function showView(v: View) {
-  $("#v-setup").hidden = v !== "setup"; $("#v-clean").hidden = v !== "clean"; $("#v-updates").hidden = v !== "updates"; $("#v-doctor").hidden = v !== "doctor"; $("#v-git").hidden = v !== "git"; $("#v-shell").hidden = v !== "shell";
+  $("#v-setup").hidden = v !== "setup"; $("#v-clean").hidden = v !== "clean"; $("#v-updates").hidden = v !== "updates"; $("#v-doctor").hidden = v !== "doctor"; $("#v-git").hidden = v !== "git"; $("#v-shell").hidden = v !== "shell"; $("#v-vscode").hidden = v !== "vscode";
   document.querySelectorAll<HTMLButtonElement>("#nav button").forEach(b => {
     if (b.dataset.v === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
@@ -752,6 +826,7 @@ function showView(v: View) {
   if (v === "doctor" && !docLoaded) void loadDoctor();
   if (v === "git" && !gitLoaded) void loadGit();
   if (v === "shell" && !shLoaded) void loadShell();
+  if (v === "vscode" && !vsLoaded) void loadVs();
 }
 document.querySelectorAll<HTMLButtonElement>("#nav button").forEach(b => { b.onclick = () => showView(b.dataset.v as View); });
 

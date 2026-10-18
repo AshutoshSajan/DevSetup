@@ -44,7 +44,7 @@ Legend: ✅ available, 🚧 partly done, 🗓 planned. Full details in [`ROADMAP
 **Phase 3: post-install setup**
 - ✅ Git and GitHub wizard: identity, SSH key, GitHub sign-in with the browser, adding the key to GitHub, and SSH-signed commits
 - ✅ Shell setup: prompt, plugins, history defaults, completion, integrations and aliases for zsh or bash, with preview, backup and removal
-- 🗓 VS Code extension packs per role
+- ✅ VS Code extension packs per role: 12 packs and about 50 extensions, installed one at a time through the editor's own command line
 - 🗓 System tweaks: Docker group and service, file-watcher limits, Flathub, firewall, timezone
 - 🗓 Driver helpers: NVIDIA, CUDA, container toolkit for GPU Docker, Android udev rules for `adb`
 
@@ -153,6 +153,14 @@ Open **Shell setup** in the sidebar.
 - **Login shell:** "Make zsh my login shell" runs through the root helper (one password prompt) and only accepts zsh or bash that are listed in `/etc/shells`. Log out and back in afterwards.
 - fish is not supported yet.
 
+## VS Code extensions
+Open **VS Code** in the sidebar. DevSetup finds VS Code or VSCodium (the `code` or `codium` command, or the Flatpak) and lists extension packs from `manifest/extensions.yaml`.
+- Packs for the roles you picked in Setup, plus an Essentials pack, are ticked. Extensions that are already installed are shown as installed and are not touched.
+- Each extension is installed with `<editor> --install-extension <id>`, one at a time, with live logs, cancel and retry. A Flatpak editor runs through `flatpak run`.
+- Only ids that are listed in the manifest can be installed, and an id must look like `publisher.name`, so nothing else can reach the command.
+- Add or change extensions by editing `manifest/extensions.yaml`. An id the marketplace does not know shows up as a failed step with the reason in the log.
+- VSCodium uses the Open VSX registry, which does not carry every Microsoft extension, so some steps may fail there.
+
 ## Install-script pinning
 Some tools install by running a script from the internet (mise, Bun, Deno, uv, rustup, Claude Code, OpenCode, Ollama).
 - A tool can carry `sha256: "<hash>"` in `manifest/tools.yaml`. DevSetup downloads the script, compares its SHA-256 and
@@ -172,6 +180,6 @@ GUI apps use Flatpak, CLI tools use apt, mise, npm, pipx or an install script.
 `cargo test` checks that the manifest parses and that tool ids, roles and `requires` are consistent.
 
 ## Layout
-- `manifest/tools.yaml`: roles and tools
-- `src-tauri/src/`: `manifest.rs`, `system.rs` (distro and installed detection), `plan.rs`, `preflight.rs`, `review.rs` (review details), `exec.rs` (executor), `helper.rs` (root helper), `state.rs`, `setup.rs` (setup files), `scan.rs` (machine scan), `clean.rs` (cleaner), `update.rs` (updater), `doctor.rs` (health checks), `gitwiz.rs` (Git and GitHub wizard), `shellcfg.rs` (shell setup), `lib.rs` (commands)
+- `manifest/tools.yaml`: roles and tools; `manifest/extensions.yaml`: VS Code extension packs
+- `src-tauri/src/`: `manifest.rs`, `system.rs` (distro and installed detection), `plan.rs`, `preflight.rs`, `review.rs` (review details), `exec.rs` (executor), `helper.rs` (root helper), `state.rs`, `setup.rs` (setup files), `scan.rs` (machine scan), `clean.rs` (cleaner), `update.rs` (updater), `doctor.rs` (health checks), `gitwiz.rs` (Git and GitHub wizard), `shellcfg.rs` (shell setup), `vscode.rs` (VS Code extension packs), `lib.rs` (commands)
 - `src/api.ts`: the only frontend file that talks to Tauri

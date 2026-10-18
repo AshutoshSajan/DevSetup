@@ -14,6 +14,7 @@
       <button data-v="doctor">Doctor</button>
       <button data-v="git">Git and GitHub</button>
       <button data-v="shell">Shell setup</button>
+      <button data-v="vscode">VS Code</button>
     </nav>
     <div class="mu" style="margin-top:auto">Theme</div>
     <div id="theme" role="group" aria-label="Theme">
@@ -62,6 +63,11 @@
   <main id="v-shell" hidden>
     <div><h1>Shell setup</h1><div class="mu">Add a prompt, plugins, history settings and aliases to zsh or bash. DevSetup only edits one marked block, backs up your original file once, and can remove the block again.</div></div>
     <div id="shell-list" class="stack"></div>
+  </main>
+  <main id="v-vscode" hidden>
+    <div><h1>VS Code extensions</h1><div class="mu">Install extension packs for your roles. Packs for the roles you picked in Setup are ticked. Extensions install one at a time with the editor's own command line.</div></div>
+    <div id="vs-list" class="stack"></div>
+    <footer><span id="vs-sum" class="mu"></span><button class="bt" id="vs-go" disabled>Install selected</button></footer>
   </main>
 </div>
 <div id="modal" class="modal" hidden><div class="dlg">

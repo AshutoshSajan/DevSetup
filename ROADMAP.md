@@ -30,7 +30,7 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 ## Phase 3: post-install setup
 - [x] Git and GitHub wizard: name, email and default branch, an ed25519 SSH key (never overwrites an existing one), GitHub sign-in through the browser with the GitHub CLI, adding the key to GitHub, and commit signing with the SSH key. Still to do: passphrase through an agent prompt, several keys per host, GPG signing
 - [x] Shell setup: a marked block in ~/.zshrc or ~/.bashrc with history defaults, completion, Starship, zsh-autosuggestions, zsh-syntax-highlighting, zoxide, fzf, direnv, mise and aliases, with preview, one-time backup and removal, plus switching the login shell to zsh. Still to do: fish, installing the missing tools in one click, oh-my-zsh style frameworks
-- [ ] VS Code extension packs per role
+- [x] VS Code extension packs per role: 12 packs in `manifest/extensions.yaml`, installed through the editor's own command line. Still to do: editor settings and keybindings, checking ids against the marketplace in CI
 - [ ] System tweaks: Docker group and service, file-watcher limits, Flathub, firewall, timezone
 - [ ] Driver helpers: NVIDIA drivers, CUDA, container toolkit for GPU Docker, Android udev rules for `adb`
 
