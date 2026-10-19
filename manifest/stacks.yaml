@@ -1,0 +1,139 @@
+# Disposable Docker services for the Stacks tab. Data, not code: add or change services here.
+# Placeholders: {port} the host port, {container_port}, {user}, {password}, {db}, {service} (the service id, which is
+# its host name inside the stack's network), {gui_port} for a GUI sidecar. Host ports are only ever bound to 127.0.0.1.
+# Images use major-version tags where the project publishes them; GUI tools use "latest".
+services:
+  - id: redis
+    name: Redis
+    description: In-memory cache, queue and key-value store.
+    image: "redis:7-alpine"
+    container_port: 6379
+    host_port: 6379
+    data_dir: "/data"
+    connection: "redis://localhost:{port}"
+    env_name: REDIS_URL
+    gui:
+      name: RedisInsight
+      image: "redis/redisinsight:latest"
+      container_port: 5540
+      host_port: 5540
+      note: "In RedisInsight add a database with host {service} and port {container_port}."
+  - id: postgres
+    name: PostgreSQL
+    description: Relational database.
+    image: "postgres:16-alpine"
+    container_port: 5432
+    host_port: 5432
+    data_dir: "/var/lib/postgresql/data"
+    user: dev
+    db: app
+    env:
+      POSTGRES_USER: "{user}"
+      POSTGRES_PASSWORD: "{password}"
+      POSTGRES_DB: "{db}"
+    connection: "postgresql://{user}:{password}@localhost:{port}/{db}"
+    env_name: POSTGRES_URL
+    gui:
+      name: pgAdmin
+      image: "dpage/pgadmin4:latest"
+      container_port: 80
+      host_port: 5050
+      env:
+        PGADMIN_DEFAULT_EMAIL: "admin@example.com"
+        PGADMIN_DEFAULT_PASSWORD: "{password}"
+      note: "Sign in to pgAdmin as admin@example.com with the stack password, then register a server with host {service}, port {container_port}, user {user}."
+  - id: mysql
+    name: MySQL
+    description: Relational database.
+    image: "mysql:8.4"
+    container_port: 3306
+    host_port: 3306
+    data_dir: "/var/lib/mysql"
+    user: dev
+    db: app
+    env:
+      MYSQL_ROOT_PASSWORD: "{password}"
+      MYSQL_DATABASE: "{db}"
+      MYSQL_USER: "{user}"
+      MYSQL_PASSWORD: "{password}"
+    connection: "mysql://{user}:{password}@localhost:{port}/{db}"
+    env_name: MYSQL_URL
+    gui:
+      name: phpMyAdmin
+      image: "phpmyadmin:5"
+      container_port: 80
+      host_port: 8080
+      env:
+        PMA_HOST: "{service}"
+        PMA_PORT: "{container_port}"
+      note: "Sign in to phpMyAdmin as {user} with the stack password."
+  - id: mongodb
+    name: MongoDB
+    description: Document database.
+    image: "mongo:7"
+    container_port: 27017
+    host_port: 27017
+    data_dir: "/data/db"
+    user: dev
+    env:
+      MONGO_INITDB_ROOT_USERNAME: "{user}"
+      MONGO_INITDB_ROOT_PASSWORD: "{password}"
+    connection: "mongodb://{user}:{password}@localhost:{port}/?authSource=admin"
+    env_name: MONGODB_URL
+    gui:
+      name: Mongo Express
+      image: "mongo-express:latest"
+      container_port: 8081
+      host_port: 8081
+      env:
+        ME_CONFIG_MONGODB_URL: "mongodb://{user}:{password}@{service}:{container_port}/"
+        ME_CONFIG_BASICAUTH: "false"
+  - id: rabbitmq
+    name: RabbitMQ
+    description: Message broker with a built-in management page.
+    image: "rabbitmq:3-management"
+    container_port: 5672
+    host_port: 5672
+    data_dir: "/var/lib/rabbitmq"
+    user: dev
+    env:
+      RABBITMQ_DEFAULT_USER: "{user}"
+      RABBITMQ_DEFAULT_PASS: "{password}"
+    connection: "amqp://{user}:{password}@localhost:{port}"
+    env_name: RABBITMQ_URL
+    extra_ports:
+      - { label: "Management", container_port: 15672, host_port: 15672, url: "http://localhost:{port}" }
+  - id: minio
+    name: MinIO
+    description: S3-compatible object storage with a built-in console.
+    image: "minio/minio:latest"
+    container_port: 9000
+    host_port: 9000
+    data_dir: "/data"
+    user: dev
+    command: ["server", "/data", "--console-address", ":9001"]
+    env:
+      MINIO_ROOT_USER: "{user}"
+      MINIO_ROOT_PASSWORD: "{password}"
+    connection: "http://localhost:{port}"
+    env_name: MINIO_ENDPOINT
+    note: "Access key {user}, secret key {password}."
+    extra_ports:
+      - { label: "Console", container_port: 9001, host_port: 9001, url: "http://localhost:{port}" }
+  - id: mailpit
+    name: Mailpit
+    description: Catches outgoing email so you can read it in a web inbox.
+    image: "axllent/mailpit:latest"
+    container_port: 1025
+    host_port: 1025
+    connection: "smtp://localhost:{port}"
+    env_name: SMTP_URL
+    extra_ports:
+      - { label: "Inbox", container_port: 8025, host_port: 8025, url: "http://localhost:{port}" }
+
+# One-click starting points: they only tick services (and GUIs) in the form.
+combos:
+  - { id: mern, name: "MERN", description: "MongoDB with Mongo Express, for a MongoDB, Express, React and Node app.", services: [mongodb], guis: [mongodb] }
+  - { id: django, name: "Django", description: "PostgreSQL with pgAdmin, plus Redis.", services: [postgres, redis], guis: [postgres] }
+  - { id: lamp, name: "LAMP", description: "MySQL with phpMyAdmin.", services: [mysql], guis: [mysql] }
+  - { id: queue-mail, name: "Queue and mail testing", description: "RabbitMQ and Mailpit.", services: [rabbitmq, mailpit], guis: [] }

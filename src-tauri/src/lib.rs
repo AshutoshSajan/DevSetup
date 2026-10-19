@@ -11,6 +11,7 @@ mod review;
 mod scan;
 mod setup;
 mod shellcfg;
+mod stacks;
 mod state;
 mod system;
 mod update;
@@ -178,12 +179,29 @@ async fn scan_drivers() -> drivers::Report {
 }
 
 #[tauri::command]
+async fn stacks_state() -> stacks::StacksState {
+    tauri::async_runtime::spawn_blocking(stacks::state).await.unwrap_or_default()
+}
+
+#[tauri::command]
+async fn stack_create(app: tauri::AppHandle, name: String, services: Vec<String>, guis: Vec<String>) -> Result<(), String> {
+    let r = tauri::async_runtime::spawn_blocking(move || stacks::start_create(app, name, services, guis)).await.map_err(|e| e.to_string())?;
+    r
+}
+
+#[tauri::command]
+fn stack_action(app: tauri::AppHandle, name: String, action: String) -> Result<(), String> { stacks::start_action(app, name, action) }
+
+#[tauri::command]
+fn stack_open(name: String, index: usize) -> Result<(), String> { stacks::open_link(&name, index) }
+
+#[tauri::command]
 fn cancel_run() { exec::cancel() }
 
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
-        .invoke_handler(tauri::generate_handler![get_system, get_manifest, list_tools, make_plan, run_plan, cancel_run, preflight, plan_details, export_setup, parse_setup, read_setup_file, write_setup_file, fetch_setup, scan_machine, scan_clean, run_clean, scan_updates, run_updates, scan_doctor, run_fix, git_state, git_save_identity, git_generate_key, git_test_ssh, git_add_key, git_setup_credentials, git_set_signing, open_url, gh_login, shell_state, shell_preview, shell_apply, shell_remove, set_login_shell, vscode_state, vscode_install, scan_drivers])
+        .invoke_handler(tauri::generate_handler![get_system, get_manifest, list_tools, make_plan, run_plan, cancel_run, preflight, plan_details, export_setup, parse_setup, read_setup_file, write_setup_file, fetch_setup, scan_machine, scan_clean, run_clean, scan_updates, run_updates, scan_doctor, run_fix, git_state, git_save_identity, git_generate_key, git_test_ssh, git_add_key, git_setup_credentials, git_set_signing, open_url, gh_login, shell_state, shell_preview, shell_apply, shell_remove, set_login_shell, vscode_state, vscode_install, scan_drivers, stacks_state, stack_create, stack_action, stack_open])
         .run(tauri::generate_context!())
         .expect("error while running DevSetup");
 }

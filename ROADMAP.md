@@ -35,11 +35,11 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 - [~] Driver helpers: read-only GPU, driver and Secure Boot diagnostics with copyable steps for NVIDIA (Debian and Ubuntu), AMD and Intel, plus an Android udev rules tool. Still to do: running the steps from the app with confirmation, an apt-sources editor for non-free, the NVIDIA Container Toolkit repository
 
 ## Phase 4: Stacks tab (disposable Docker services)
-- [ ] Stack cards per project: start, stop, destroy (containers, volumes, network)
-- [ ] Services: Redis, MongoDB, Postgres, MySQL, Kafka, RabbitMQ, MinIO, Elasticsearch, Mailpit, with GUI sidecars
-- [ ] Ready-made combos: MERN, Django + Postgres + Redis, LAMP
-- [ ] Port-conflict detection, `.env` export, volume backup and restore, idle-stack reminders
-- [ ] Connection strings with copy buttons, disk usage per stack
+- [x] Stack cards per project: create, start, stop and destroy (containers, volumes, network), with a cleanup when a stack fails to start
+- [~] Services: Redis, MongoDB, PostgreSQL, MySQL, RabbitMQ, MinIO and Mailpit, with GUI sidecars where there is one, in `manifest/stacks.yaml`. Still to do: Kafka and Elasticsearch (they need extra settings)
+- [x] Ready-made combos: MERN, Django (PostgreSQL + Redis), LAMP, queue and mail testing
+- [~] Port-conflict detection (the next free port is used) and `.env` lines are done. Still to do: volume backup and restore, idle-stack reminders
+- [~] Connection strings with copy buttons are done. Still to do: disk usage per stack
 
 ## Phase 5: later
 - [ ] Command-line version: `devsetup apply devsetup.yaml` for servers, CI and WSL

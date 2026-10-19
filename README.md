@@ -49,11 +49,11 @@ Legend: ✅ available, 🚧 partly done, 🗓 planned. Full details in [`ROADMAP
 - 🚧 Drivers: read-only GPU and Secure Boot diagnostics with steps to follow yourself, plus Android udev rules as a tool for `adb` (DevSetup does not install graphics drivers automatically)
 
 **Phase 4: Stacks tab (disposable Docker services)**
-- 🗓 Stack cards per project: start, stop, destroy (containers, volumes, network)
-- 🗓 Services: Redis, MongoDB, Postgres, MySQL, Kafka, RabbitMQ, MinIO, Elasticsearch, Mailpit, with GUI sidecars
-- 🗓 Ready-made combos: MERN, Django + Postgres + Redis, LAMP
-- 🗓 Port-conflict detection, `.env` export, volume backup and restore, idle-stack reminders
-- 🗓 Connection strings with copy buttons and disk usage per stack
+- ✅ Stack cards per project: create, start, stop and destroy (containers, volumes, network)
+- 🚧 Services: Redis, MongoDB, PostgreSQL, MySQL, RabbitMQ, MinIO and Mailpit, with GUI sidecars where there is one (Kafka and Elasticsearch still to come)
+- ✅ Ready-made combos: MERN, Django (PostgreSQL + Redis), LAMP, and queue and mail testing
+- 🚧 Port-conflict detection and `.env` lines are done; volume backup and restore and idle-stack reminders are still to come
+- 🚧 Connection strings with copy buttons are done; disk usage per stack is still to come
 
 **Phase 5: later**
 - 🗓 Command-line version: `devsetup apply devsetup.yaml`
@@ -169,6 +169,15 @@ Open **Drivers** in the sidebar. It reads your graphics hardware, the kernel dri
 - **Android phones:** the udev rules that fix an adb device listed as "no permissions". They are also a tool under Mobile in Setup ("Android udev rules").
 - Commands are text with a Copy button. Nothing on this page runs a command.
 
+## Stacks
+Open **Stacks** in the sidebar to start disposable Docker services for one project and throw them away afterwards, so nothing is left installed on your system.
+- Pick services (Redis, PostgreSQL, MySQL, MongoDB, RabbitMQ, MinIO, Mailpit) or a combo (MERN, Django, LAMP, queue and mail testing), optionally with an admin page (RedisInsight, pgAdmin, phpMyAdmin, Mongo Express). RabbitMQ, MinIO and Mailpit have their own web pages built in.
+- DevSetup writes a compose file under `~/.local/share/devsetup/stacks/<name>/` and runs `docker compose up -d` with the project name `devsetup-<name>`. The services and their images are defined in `manifest/stacks.yaml`.
+- **Local only:** every published port is bound to `127.0.0.1`. A random password is generated per stack and kept in a private (`0600`) file in that folder. A busy port, or one used by another stack, is skipped in favour of the next free one.
+- Each stack shows its connection strings with Copy buttons, links to open the web pages, and `.env` lines to paste into a project (for example `POSTGRES_URL`).
+- **Start, Stop, Destroy.** Destroy runs `docker compose down -v --remove-orphans` and then deletes the stack's folder. It asks first, because the volumes, and so the data in them, are deleted too. A stack that fails to start is cleaned up again.
+- Needs Docker running, you in the `docker` group, and Docker Compose (the Doctor page checks both Docker conditions).
+
 ## Install-script pinning
 Some tools install by running a script from the internet (mise, Bun, Deno, uv, rustup, Claude Code, OpenCode, Ollama).
 - A tool can carry `sha256: "<hash>"` in `manifest/tools.yaml`. DevSetup downloads the script, compares its SHA-256 and
@@ -188,6 +197,6 @@ GUI apps use Flatpak, CLI tools use apt, mise, npm, pipx or an install script.
 `cargo test` checks that the manifest parses and that tool ids, roles and `requires` are consistent.
 
 ## Layout
-- `manifest/tools.yaml`: roles and tools; `manifest/extensions.yaml`: VS Code extension packs
-- `src-tauri/src/`: `manifest.rs`, `system.rs` (distro and installed detection), `plan.rs`, `preflight.rs`, `review.rs` (review details), `exec.rs` (executor), `helper.rs` (root helper), `state.rs`, `setup.rs` (setup files), `scan.rs` (machine scan), `clean.rs` (cleaner), `update.rs` (updater), `doctor.rs` (health checks), `gitwiz.rs` (Git and GitHub wizard), `shellcfg.rs` (shell setup), `vscode.rs` (VS Code extension packs), `drivers.rs` (driver diagnostics), `lib.rs` (commands)
+- `manifest/tools.yaml`: roles and tools; `manifest/extensions.yaml`: VS Code extension packs; `manifest/stacks.yaml`: Docker stack services
+- `src-tauri/src/`: `manifest.rs`, `system.rs` (distro and installed detection), `plan.rs`, `preflight.rs`, `review.rs` (review details), `exec.rs` (executor), `helper.rs` (root helper), `state.rs`, `setup.rs` (setup files), `scan.rs` (machine scan), `clean.rs` (cleaner), `update.rs` (updater), `doctor.rs` (health checks), `gitwiz.rs` (Git and GitHub wizard), `shellcfg.rs` (shell setup), `vscode.rs` (VS Code extension packs), `drivers.rs` (driver diagnostics), `stacks.rs` (Docker stacks), `lib.rs` (commands)
 - `src/api.ts`: the only frontend file that talks to Tauri
