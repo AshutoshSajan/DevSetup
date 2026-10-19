@@ -25,17 +25,3 @@ name = "unsafe-libyaml"
 version = "0.2.11"
 ignore = true
 reason = "RUSTSEC-2024-0449: unmaintained crate, no fixed release exists. Enters through the serde_yaml chain in build/test config parsing."
-
-[[PackageOverrides]]
-ecosystem = "npm"
-name = "vite"
-version = "5.4.21"
-ignore = true
-reason = "GHSA-4w7w-66w2-5vf9 / GHSA-fx2h-pf6j-xcff (high 8.2) / GHSA-v6wh-96g9-6wx3 - all hit vite's DEV server only (npm audit --omit=dev stays the production gate and is clean). Fixes require vite 6, which broke the tauri v2 dev flow and was deliberately pinned back to ^5; migration tracked in ROADMAP.md."
-
-[[PackageOverrides]]
-ecosystem = "npm"
-name = "esbuild"
-version = "0.21.5"
-ignore = true
-reason = "GHSA-67mh-4wv8-2f99 (medium 5.3): dev-server usage only, transitive dev dependency of vite 5. Cleared by the same vite 6 migration tracked in ROADMAP.md; production deps stay gated by npm audit --omit=dev."
