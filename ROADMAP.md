@@ -54,10 +54,13 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 - [ ] Tauri 3 / gtk-rs 0.20 migration — clears the `glib` exemption
   (RUSTSEC-2024-0429) and replays the whole local-GTK install path on the
   new stack. Largest migration on this list; plan as `feat/tauri-3`.
-- [ ] vite 6 migration — clears the `vite` + `esbuild` exemptions
-  (GHSA-fx2h-pf6j-xcff high; dev-server-only). vite 6 previously broke the
-  tauri v2 dev flow, which is why the line is pinned back to `^5`; re-verify
-  both dev server and `tauri build` before reopening.
+- [x] vite 8 migration (2026-10-19): `^5` → `^8.3.4` shipped via the
+  `update-vite-version` PR. Vite 8's rolldown core dropped esbuild entirely,
+  so the `vite` and `esbuild` exemptions had nothing left to match and were
+  removed from `.osv-scanner.toml`. Verified: `vite build`, `tsc --noEmit`
+  (typescript 7 native) and a dev-server boot on :1420 are green — do one
+  full `tauri dev` session on first real use to close the old dev-flow
+  concern completely.
 - [ ] Unmaintained-crate chain cleanup — `proc-macro-error` and
   `unsafe-libyaml` have no fixed release; the exemption lapses when
   dependencies stop pulling them (watch Dependabot majors, serde_yaml

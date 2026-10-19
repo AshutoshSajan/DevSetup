@@ -140,8 +140,10 @@ an unlisted vulnerable version, or dropping a reason, is a violation.
   vulnerabilities in that package — forbidden. Exemptions lapse the moment
   the package version moves, so fixes and new findings surface again.
 - npm production exposure remains gated by `npm audit --omit=dev`
-  independently; dev-tooling findings in vite/esbuild ride the vite 6
-  migration rather than the production gate.
+  independently. The former dev-server exemptions (`vite 5.4.21`,
+  `esbuild 0.21.5`) lapsed with the vite 8 bump (rolldown core, no esbuild
+  in the lock anymore) and were removed; only findings that genuinely
+  cannot be patched keep an entry.
 - An exemption is not a disposal. Each entry names its remediation path
   (e.g. the Tauri 3 migration clears `glib`; unmaintained crates clear when
   dependencies stop pulling them). A merge that adds an exemption should
