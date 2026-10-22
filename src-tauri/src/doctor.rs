@@ -217,6 +217,25 @@ fn check_reboot() -> Option<Finding> {
     Path::new("/var/run/reboot-required").exists().then(|| f("reboot", "A restart is needed", "info", "Updates were installed that need a restart", "Restart when convenient."))
 }
 
+const POLICY_PATH: &str = "/usr/share/polkit-1/actions/dev.devsetup.helper.policy";
+
+/// Whether the root helper can start from where DevSetup runs, and whether polkit shows DevSetup's own prompt.
+fn root_helper_finding(appimage: Option<&str>, exe: &str, policy_installed: bool) -> Finding {
+    if appimage.is_some() || exe.contains("/.mount_") {
+        return f("root-helper", "System steps cannot run from an AppImage", "warn",
+            "DevSetup is running as an AppImage. It is mounted where only your user can read it, so pkexec cannot start the root helper from there.",
+            "Install the .deb package instead. Steps that run as you (Flatpak, mise, npm, install scripts) still work.");
+    }
+    let installed = exe == "/usr/bin/devsetup";
+    if installed && policy_installed {
+        return f("root-helper", "Root helper", "ok", "Installed in /usr/bin with its polkit policy, so the password prompt names DevSetup", "");
+    }
+    if installed {
+        return f("root-helper", "Root helper", "info", "The polkit policy is not installed, so the password prompt uses polkit's generic wording. System steps still work.", "Reinstall the .deb to restore the policy.");
+    }
+    f("root-helper", "Root helper", "info", format!("Running from {exe}, not from the .deb. System steps still work, but the password prompt uses polkit's generic wording."), "")
+}
+
 pub fn scan() -> Vec<Finding> {
     let m = manifest::load();
     let apt = system::apt_installed();
@@ -230,6 +249,8 @@ pub fn scan() -> Vec<Finding> {
     v.extend(check_apt());
     v.extend(check_disk());
     v.extend(check_reboot());
+    let exe = std::env::current_exe().map(|p| p.to_string_lossy().into_owned()).unwrap_or_default();
+    v.push(root_helper_finding(std::env::var("APPIMAGE").ok().as_deref(), &exe, Path::new(POLICY_PATH).exists()));
     v.sort_by_key(|x| match x.status { "fail" => 0, "warn" => 1, "info" => 2, _ => 3 });
     v
 }
@@ -302,5 +323,19 @@ mod tests {
         let mut v = vec![f("a", "a", "ok", "", ""), f("b", "b", "fail", "", ""), f("c", "c", "warn", "", "")];
         v.sort_by_key(|x| match x.status { "fail" => 0, "warn" => 1, "info" => 2, _ => 3 });
         assert_eq!(v.iter().map(|x| x.id.as_str()).collect::<Vec<_>>(), vec!["b", "c", "a"]);
+    }
+
+    #[test]
+    fn the_root_helper_finding_covers_appimage_deb_and_source_runs() {
+        let appimage = root_helper_finding(Some("/home/u/DevSetup.AppImage"), "/tmp/.mount_DevSetXyz/usr/bin/devsetup", false);
+        assert_eq!(appimage.status, "warn");
+        assert_eq!(root_helper_finding(None, "/tmp/.mount_DevSetXyz/usr/bin/devsetup", true).status, "warn", "a mount path alone is enough");
+        assert_eq!(root_helper_finding(None, "/usr/bin/devsetup", true).status, "ok");
+        let no_policy = root_helper_finding(None, "/usr/bin/devsetup", false);
+        assert_eq!(no_policy.status, "info");
+        assert!(no_policy.detail.contains("policy"));
+        let source = root_helper_finding(None, "/home/u/DevSetup/src-tauri/target/debug/devsetup", false);
+        assert_eq!(source.status, "info");
+        assert!(source.detail.contains("target/debug/devsetup"));
     }
 }
