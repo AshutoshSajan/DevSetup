@@ -32,7 +32,7 @@ Legend: ✅ available, 🚧 partly done, 🗓 planned. Full details in [`ROADMAP
 **Phase 1: a real installer**
 - 🗓 Secure Boot warning (once driver tools exist)
 - 🗓 Polkit policy and `.deb` packaging for the root helper
-- 🗓 Unit and integration tests for the plan and executor
+- 🚧 Unit and integration tests for the plan and executor (unit tests done, end-to-end run still to do)
 
 **Phase 2: features that set it apart**
 - ✅ Save and share setups: save the selection as `devsetup.yaml`, load it from a file, pasted text or a GitHub link

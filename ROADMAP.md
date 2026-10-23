@@ -18,7 +18,7 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 - [x] Remove tools DevSetup installed with apt, Flatpak, mise, npm and pipx, and install-script tools that define an `uninstall` command. Dependents go first, and a tool another remaining tool needs is kept
 - [x] Pinned install scripts: checksum verification before a script runs, strict mode, optional version pins for mise, npm and pipx tools, and `npm run pin` to generate the hashes. All eight install scripts carry committed pins, and the weekly `deps-audit` workflow runs the stale-pin check
 - [ ] Polkit policy and `.deb` packaging for the root helper (`packaging/`)
-- [ ] Unit and integration tests for plan and executor
+- [~] Unit and integration tests for plan and executor: the planning rules, the install and remove commands and their ordering are unit-tested. Still to do: an end-to-end run against a throwaway root
 
 ## Phase 2: features that set it apart
 - [x] Save and share setups: export the selection as `devsetup.yaml` (file or copied text), load it from a file, pasted text or a GitHub link (`owner/repo`, repo, blob or gist URL). Loading adds to your selection; unknown tools are reported
