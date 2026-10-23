@@ -31,7 +31,7 @@ Legend: ✅ available, 🚧 partly done, 🗓 planned. Full details in [`ROADMAP
 
 **Phase 1: a real installer**
 - ✅ Secure Boot warning, shown on the Drivers page with the steps to enroll a key
-- 🗓 Polkit policy and `.deb` packaging for the root helper
+- 🚧 Polkit policy and `.deb` packaging: the `.deb` installs `/usr/bin/devsetup` and the polkit policy, so the password prompt names DevSetup (configured and contract-tested; a real build and install on a clean machine is still to do)
 - 🚧 Unit and integration tests for the plan and executor (unit tests done, end-to-end run still to do)
 
 **Phase 2: features that set it apart**
@@ -82,7 +82,7 @@ App icons live in `src-tauri/icons/` and are generated from `docs/app-icon.png` 
 5. Cancel stops the step that is running and skips the rest. System packages (apt) run as root and cannot be interrupted safely, so cancel takes effect once they finish. Failed or cancelled steps can be retried one by one or all at once.
 6. DevSetup records what it installed in `~/.local/share/devsetup/state.json` and removes only those tools. (Builds from when the app was called FlashSetup used `~/.local/share/flashsetup/`; that file is still read if the new one does not exist.)
 
-For packaged installs, copy `packaging/dev.devsetup.helper.policy` to `/usr/share/polkit-1/actions/`.
+The `.deb` installs `packaging/dev.devsetup.helper.policy` to `/usr/share/polkit-1/actions/`, which is what makes the password prompt name DevSetup. See Packages below.
 
 ## Removing tools
 Untick a tool that DevSetup installed and it appears under "Will remove" in the review. Tools you installed yourself are never removed.
@@ -177,6 +177,13 @@ Open **Stacks** in the sidebar to start disposable Docker services for one proje
 - Each stack shows its connection strings with Copy buttons, links to open the web pages, and `.env` lines to paste into a project (for example `POSTGRES_URL`).
 - **Start, Stop, Destroy.** Destroy runs `docker compose down -v --remove-orphans` and then deletes the stack's folder. It asks first, because the volumes, and so the data in them, are deleted too. A stack that fails to start is cleaned up again.
 - Needs Docker running, you in the `docker` group, and Docker Compose (the Doctor page checks both Docker conditions).
+
+## Packages
+`npm run tauri build` writes a `.deb` and an AppImage to `src-tauri/target/release/bundle/`.
+- **`.deb` (recommended):** installs `/usr/bin/devsetup`, a menu entry in the Development category, and the polkit policy. It depends on `pkexec` (or `policykit-1` on older systems).
+- **The policy** (`packaging/dev.devsetup.helper.policy`) covers only `/usr/bin/devsetup` and always asks for an administrator password: no cached approval and no password-free case. A contract test checks this, the binary name, and where the `.deb` puts the file.
+- **AppImage:** works for steps that run as you (Flatpak, mise, npm, install scripts), but system-package steps cannot run from it, because `pkexec` cannot start the root helper from the AppImage's private mount. Doctor says so.
+- **From source** (`npm run tauri dev`): everything works, but the password prompt uses polkit's generic wording.
 
 ## Install-script pinning
 Some tools install by running a script from the internet (mise, Bun, Deno, uv, rustup, Claude Code, OpenCode, Ollama).
