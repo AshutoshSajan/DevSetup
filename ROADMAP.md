@@ -13,7 +13,7 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 - [x] State file: remembers what DevSetup installed; only those tools can be removed
 - [x] Plan review screen: installs, removals and left-alone tools, the exact commands in execution order (built from the same code that runs them), apt package sizes, and a copy button. Pre-flight checks add the total download and disk estimate
 - [x] Pre-flight checks in the review screen: supported distro, pkexec, curl, reachable hosts, free disk space, apt package lookup with size estimate
-- [ ] Secure Boot warning (needed once driver tools exist, Phase 3)
+- [x] Secure Boot warning: shown on the Drivers page with the Machine Owner Key steps. A pre-flight warning for installs follows once a tool in the list needs a kernel module
 - [x] Cancel a running install (stops user-level steps; the root apt step finishes first, since stopping it is unsafe) and retry failed or cancelled steps, one by one or all at once
 - [x] Remove tools DevSetup installed with apt, Flatpak, mise, npm and pipx, and install-script tools that define an `uninstall` command. Dependents go first, and a tool another remaining tool needs is kept
 - [x] Pinned install scripts: checksum verification before a script runs, strict mode, optional version pins for mise, npm and pipx tools, and `npm run pin` to generate the hashes. All eight install scripts carry committed pins, and the weekly `deps-audit` workflow runs the stale-pin check
@@ -32,7 +32,7 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 - [x] Shell setup: a marked block in ~/.zshrc or ~/.bashrc with history defaults, completion, Starship, zsh-autosuggestions, zsh-syntax-highlighting, zoxide, fzf, direnv, mise and aliases, with preview, one-time backup and removal, plus switching the login shell to zsh. Still to do: fish, installing the missing tools in one click, oh-my-zsh style frameworks
 - [x] VS Code extension packs per role: 12 packs in `manifest/extensions.yaml`, installed through the editor's own command line. Still to do: editor settings and keybindings, checking ids against the marketplace in CI
 - [ ] System tweaks: Docker group and service, file-watcher limits, Flathub, firewall, timezone
-- [ ] Driver helpers: NVIDIA drivers, CUDA, container toolkit for GPU Docker, Android udev rules for `adb`
+- [~] Driver helpers: read-only GPU, driver and Secure Boot diagnostics with copyable steps for NVIDIA (Debian and Ubuntu), AMD and Intel, plus an Android udev rules tool. Still to do: running the steps from the app with confirmation, an apt-sources editor for non-free, the NVIDIA Container Toolkit repository
 
 ## Phase 4: Stacks tab (disposable Docker services)
 - [ ] Stack cards per project: start, stop, destroy (containers, volumes, network)
