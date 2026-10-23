@@ -1,5 +1,5 @@
 import "./style.css";
-import { api, Tool, Role, Plan, Imported, Scan, CleanItem, UpdateItem, Finding, FixInfo, GitState, ShellState, ShOpts, VsState, DriverReport } from "./api";
+import { api, Tool, Role, Plan, Imported, Scan, CleanItem, UpdateItem, Finding, FixInfo, GitState, ShellState, ShOpts, VsState, DriverReport, StacksState } from "./api";
 
 const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector(s) as T;
 const el = (tag: string, cls = "", text = "") => { const e = document.createElement(tag); e.className = cls; e.textContent = text; return e; };
@@ -851,9 +851,101 @@ function renderDrivers() {
 }
 $("#drv-rescan").onclick = () => { void loadDrivers(); };
 
-type View = "setup" | "clean" | "updates" | "doctor" | "git" | "shell" | "vscode" | "drivers";
+// ---- stacks ----
+let stState: StacksState | null = null, stLoaded = false, stName = "myapp";
+const stSel = new Set<string>(), stGui = new Set<string>();
+const stNote = { text: "", bad: false };
+
+async function loadStacks() {
+  if (!stState) $("#st-list").replaceChildren(el("div", "mu", "Looking for Docker…"));
+  try { stState = await api.stacksState(); }
+  catch (e) { $("#st-list").replaceChildren(el("div", "st warn", `! Could not read stacks: ${e}`)); return; }
+  stLoaded = true; renderStacks();
+}
+
+function stackRun(title: string, start: () => Promise<void>) {
+  return runProgress({ title, label: () => "Stack", start, after: loadStacks });
+}
+
+function copyButton(text: string, label = "Copy") {
+  const b = el("button", "b2 mini", label);
+  b.onclick = async () => { try { await navigator.clipboard.writeText(text); b.textContent = "Copied"; } catch { b.textContent = "Could not copy"; } };
+  return b;
+}
+
+function renderStacks() {
+  const s = stState, box = $("#st-list"); if (!s) return;
+  box.replaceChildren();
+  const ready = s.docker.daemon && s.docker.compose;
+
+  // new stack
+  const nc = el("div", "card"); nc.append(el("b", "", "New stack"));
+  if (!s.docker.daemon) nc.append(el("div", "st warn", `! Docker is not available: ${s.docker.reason}. Docker must be installed and running, and you must be in the docker group. Doctor can check both.`));
+  else if (!s.docker.compose) {
+    const b = el("button", "b2", "Tick Docker Compose in Setup"); b.onclick = () => tickInSetup(["docker-compose"]);
+    nc.append(el("div", "st warn", "! Docker Compose is not installed."), b);
+  }
+  const nameIn = document.createElement("input"); nameIn.type = "text"; nameIn.value = stName; nameIn.maxLength = 30; nameIn.setAttribute("aria-label", "Stack name"); nameIn.placeholder = "Stack name";
+  nameIn.oninput = () => { stName = nameIn.value; updateCreate(); };
+  nc.append(nameIn, el("div", "mu", "Start from a combination, or pick services:"));
+  const combos = el("div", "btns");
+  for (const c of s.catalog.combos) {
+    const b = el("button", "b2", c.name); b.title = c.description;
+    b.onclick = () => { stSel.clear(); stGui.clear(); c.services.forEach(x => stSel.add(x)); c.guis.forEach(x => stGui.add(x)); renderStacks(); };
+    combos.append(b);
+  }
+  nc.append(combos);
+  for (const d of s.catalog.services) {
+    const row = el("label", "row"), cb = document.createElement("input");
+    cb.type = "checkbox"; cb.checked = stSel.has(d.id);
+    cb.onchange = () => { if (cb.checked) stSel.add(d.id); else { stSel.delete(d.id); stGui.delete(d.id); } renderStacks(); };
+    row.append(cb, el("span", "", `${d.name}: ${d.description}`), el("span", "tag", `port ${d.host_port}`)); nc.append(row);
+    if (d.gui && stSel.has(d.id)) {
+      const g = el("label", "row"), gc = document.createElement("input"); gc.type = "checkbox"; gc.checked = stGui.has(d.id);
+      gc.onchange = () => { if (gc.checked) stGui.add(d.id); else stGui.delete(d.id); };
+      g.style.marginLeft = "26px"; g.append(gc, el("span", "", `with ${d.gui.name}`)); nc.append(g);
+    }
+  }
+  const create = el("button", "bt", "Create and start") as HTMLButtonElement;
+  const updateCreate = () => { create.disabled = !ready || !stSel.size || !/^[a-z0-9]([a-z0-9-]{0,28}[a-z0-9])?$/.test(stName); };
+  create.onclick = () => { stNote.text = ""; void stackRun("Creating stack", () => api.stackCreate(stName, [...stSel], [...stGui].filter(x => stSel.has(x)))); };
+  updateCreate();
+  nc.append(create, el("div", "mu", "If a service's usual port is busy or used by another stack, the next free port is used and shown below. The first start downloads the Docker images."));
+  if (stNote.text) nc.append(el("div", stNote.bad ? "st warn" : "mu", stNote.text));
+  box.append(nc);
+
+  // existing stacks
+  for (const st of s.stacks) {
+    const card = el("div", "card"), head = el("div", "row");
+    head.append(el("b", "", st.name), el("span", "tag", `${st.running} of ${st.containers.length} running`)); card.append(head);
+    if (st.created) card.append(el("div", "mu", `Created ${new Date(st.created * 1000).toLocaleDateString()}`));
+    for (const c of st.connections) {
+      const w = el("div", "fixrow"); w.append(el("div", "mu", c.service), el("pre", "", c.value), copyButton(c.value)); card.append(w);
+    }
+    if (st.links.length) {
+      const row = el("div", "btns");
+      st.links.forEach((l, i) => { const b = el("button", "b2", `Open ${l.label}`); b.onclick = () => { void api.stackOpen(st.name, i).catch(e => { stNote.text = `${e}`; stNote.bad = true; renderStacks(); }); }; row.append(b); });
+      card.append(row);
+    }
+    for (const n of st.notes) card.append(el("div", "mu", n));
+    const row = el("div", "btns");
+    if (st.running < st.containers.length) { const b = el("button", "bt", "Start"); b.onclick = () => { void stackRun("Starting stack", () => api.stackAction(st.name, "start")); }; row.append(b); }
+    if (st.running > 0) { const b = el("button", "b2", "Stop"); b.onclick = () => { void stackRun("Stopping stack", () => api.stackAction(st.name, "stop")); }; row.append(b); }
+    if (st.env_text) row.append(copyButton(st.env_text, "Copy .env lines"));
+    const del = el("button", "b2", "Destroy…");
+    del.onclick = async () => {
+      if (!(await api.confirm(`Destroy ${st.name}? This deletes its containers, its network and its volumes, including all data stored in them. It cannot be undone.`))) return;
+      void stackRun("Destroying stack", () => api.stackAction(st.name, "destroy"));
+    };
+    row.append(del); card.append(row); box.append(card);
+  }
+  $("#st-sum").textContent = s.stacks.length ? `${s.stacks.length} stack${s.stacks.length === 1 ? "" : "s"}` : "No stacks yet";
+}
+$("#st-rescan").onclick = () => { void loadStacks(); };
+
+type View = "setup" | "clean" | "updates" | "doctor" | "git" | "shell" | "vscode" | "drivers" | "stacks";
 function showView(v: View) {
-  $("#v-setup").hidden = v !== "setup"; $("#v-clean").hidden = v !== "clean"; $("#v-updates").hidden = v !== "updates"; $("#v-doctor").hidden = v !== "doctor"; $("#v-git").hidden = v !== "git"; $("#v-shell").hidden = v !== "shell"; $("#v-vscode").hidden = v !== "vscode"; $("#v-drivers").hidden = v !== "drivers";
+  $("#v-setup").hidden = v !== "setup"; $("#v-clean").hidden = v !== "clean"; $("#v-updates").hidden = v !== "updates"; $("#v-doctor").hidden = v !== "doctor"; $("#v-git").hidden = v !== "git"; $("#v-shell").hidden = v !== "shell"; $("#v-vscode").hidden = v !== "vscode"; $("#v-drivers").hidden = v !== "drivers"; $("#v-stacks").hidden = v !== "stacks";
   document.querySelectorAll<HTMLButtonElement>("#nav button").forEach(b => {
     if (b.dataset.v === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
   });
@@ -864,6 +956,7 @@ function showView(v: View) {
   if (v === "shell" && !shLoaded) void loadShell();
   if (v === "vscode" && !vsLoaded) void loadVs();
   if (v === "drivers" && !drvLoaded) void loadDrivers();
+  if (v === "stacks" && !stLoaded) void loadStacks();
 }
 document.querySelectorAll<HTMLButtonElement>("#nav button").forEach(b => { b.onclick = () => showView(b.dataset.v as View); });
 
