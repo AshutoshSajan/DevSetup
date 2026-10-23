@@ -427,4 +427,58 @@ mod tests {
         let ids: Vec<&str> = pl.to_install.iter().map(|t| t.id.as_str()).collect();
         assert_eq!(ids, vec!["a", "b"]);
     }
+
+    fn args_of(c: &Command) -> Vec<String> { c.get_args().map(|a| a.to_string_lossy().into_owned()).collect() }
+
+    #[test]
+    fn install_commands_are_what_the_review_promises() {
+        let mise = |tool: &str, version: Option<&str>| tool_with("t", Method::Mise { tool: tool.into(), version: version.map(String::from) });
+        assert_eq!(render(&install_cmd(&mise("node", None)).unwrap()), "mise use --global node@lts");
+        assert_eq!(render(&install_cmd(&mise("go", None)).unwrap()), "mise use --global go@latest");
+        assert_eq!(render(&install_cmd(&mise("go", Some("1.22"))).unwrap()), "mise use --global go@1.22");
+        let npm = tool_with("t", Method::Npm { package: "@openai/codex".into(), version: Some("1.2.3".into()) });
+        assert_eq!(render(&install_cmd(&npm).unwrap()), "npm install -g @openai/codex@1.2.3");
+        let pipx = tool_with("t", Method::Pipx { package: "aider-chat".into(), version: Some("0.5".into()) });
+        assert_eq!(render(&install_cmd(&pipx).unwrap()), "pipx install aider-chat==0.5");
+        let fp = tool_with("t", Method::Flatpak { app_id: "org.example.App".into() });
+        assert!(render(&install_cmd(&fp).unwrap()).ends_with("flatpak install --user -y --noninteractive flathub org.example.App"));
+        assert!(install_cmd(&tool_with("t", Method::Apt { package: "git".into() })).is_none(), "apt goes through the root helper");
+    }
+
+    #[test]
+    fn script_installs_pass_the_url_pin_and_arguments_in_order() {
+        let pinned = tool_with("t", Method::Script { url: "https://x.test/i.sh".into(), sha256: Some("ab".repeat(32)), args: vec!["-y".into()], uninstall: None, update: None });
+        let a = args_of(&install_cmd(&pinned).unwrap());
+        assert_eq!((a[0].as_str(), a[2].as_str()), ("-c", "sh"));
+        assert_eq!(&a[3..], &["https://x.test/i.sh".to_string(), "ab".repeat(32), "-y".to_string()]);
+        let unpinned = tool_with("t", Method::Script { url: "https://x.test/i.sh".into(), sha256: None, args: vec![], uninstall: None, update: None });
+        let b = args_of(&install_cmd(&unpinned).unwrap());
+        assert_eq!(&b[3..], &["https://x.test/i.sh".to_string(), String::new()], "no pin is passed as an empty string");
+    }
+
+    #[test]
+    fn remove_commands_are_what_the_review_promises() {
+        let npm = tool_with("t", Method::Npm { package: "pkg".into(), version: None });
+        assert_eq!(render(&remove_cmd(&npm).unwrap()), "npm uninstall -g pkg");
+        let pipx = tool_with("t", Method::Pipx { package: "pkg".into(), version: None });
+        assert_eq!(render(&remove_cmd(&pipx).unwrap()), "pipx uninstall pkg");
+        let with = tool_with("t", Method::Script { url: "https://x.test".into(), sha256: None, args: vec![], uninstall: Some("rm -f \"$HOME/.local/bin/x\"".into()), update: None });
+        assert_eq!(render(&remove_cmd(&with).unwrap()), "rm -f \"$HOME/.local/bin/x\"");
+        let without = tool_with("t", Method::Script { url: "https://x.test".into(), sha256: None, args: vec![], uninstall: None, update: None });
+        assert!(remove_cmd(&without).is_none(), "no known uninstall command means manual removal");
+        assert!(remove_cmd(&tool_with("t", Method::Apt { package: "git".into() })).is_none());
+    }
+
+    #[test]
+    fn requirements_come_first_whatever_the_manifest_order() {
+        // c needs b needs a, listed in reverse: requirements must still come first.
+        let a = tool("a", &[], Method::Apt { package: "pkg-a".into() });
+        let b = tool("b", &["a"], Method::Apt { package: "pkg-b".into() });
+        let c = tool("c", &["b"], Method::Apt { package: "pkg-c".into() });
+        let m = Manifest { roles: vec![], tools: vec![c, b, a] };
+        let pl = plan_steps(&m, &HashSet::new(), &HashSet::new(), &["c".to_string()], &[]);
+        assert_eq!(pl.to_install.iter().map(|t| t.id.as_str()).collect::<Vec<_>>(), vec!["a", "b", "c"]);
+    }
+
+    fn tool_with(id: &str, method: Method) -> Tool { tool(id, &[], method) }
 }

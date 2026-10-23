@@ -50,7 +50,7 @@ pub fn apt_installed() -> HashSet<String> {
     set
 }
 
-fn flatpak_has(app_id: &str) -> bool {
+pub(crate) fn flatpak_has(app_id: &str) -> bool {
     PathBuf::from("/var/lib/flatpak/app").join(app_id).exists()
         || home().map(|h| h.join(".local/share/flatpak/app").join(app_id).exists()).unwrap_or(false)
 }

@@ -1,0 +1,115 @@
+# VS Code extension packs. Data, not code: add or change extensions here.
+# roles: role ids from tools.yaml, or "all" (offered to everyone).
+# Ids are marketplace ids (publisher.name). The install log shows any id the marketplace does not know.
+packs:
+  - id: essentials
+    name: Essentials
+    description: Helpful in every project.
+    roles: [all]
+    extensions:
+      - { id: "EditorConfig.EditorConfig", name: "EditorConfig" }
+      - { id: "usernamehw.errorlens", name: "Error Lens" }
+      - { id: "streetsidesoftware.code-spell-checker", name: "Code Spell Checker" }
+      - { id: "eamodio.gitlens", name: "GitLens" }
+      - { id: "redhat.vscode-yaml", name: "YAML" }
+      - { id: "tamasfe.even-better-toml", name: "Even Better TOML" }
+  - id: web
+    name: Frontend and web
+    description: Linting, formatting and framework support.
+    roles: [web]
+    extensions:
+      - { id: "dbaeumer.vscode-eslint", name: "ESLint" }
+      - { id: "esbenp.prettier-vscode", name: "Prettier" }
+      - { id: "bradlc.vscode-tailwindcss", name: "Tailwind CSS IntelliSense" }
+      - { id: "Vue.volar", name: "Vue (Volar)" }
+      - { id: "svelte.svelte-vscode", name: "Svelte" }
+      - { id: "ms-playwright.playwright", name: "Playwright Test" }
+  - id: backend
+    name: Backend
+    description: Languages, containers and API clients.
+    roles: [backend]
+    extensions:
+      - { id: "ms-azuretools.vscode-docker", name: "Docker" }
+      - { id: "golang.go", name: "Go" }
+      - { id: "ms-python.python", name: "Python" }
+      - { id: "vscjava.vscode-java-pack", name: "Extension Pack for Java" }
+      - { id: "rangav.vscode-thunder-client", name: "Thunder Client" }
+      - { id: "humao.rest-client", name: "REST Client" }
+  - id: mobile
+    name: Mobile
+    description: Flutter, Dart and Kotlin.
+    roles: [mobile]
+    extensions:
+      - { id: "Dart-Code.flutter", name: "Flutter" }
+      - { id: "Dart-Code.dart-code", name: "Dart" }
+      - { id: "fwcd.kotlin", name: "Kotlin" }
+  - id: systems
+    name: Systems and low-level
+    description: Rust, C and C++, CMake and debugging.
+    roles: [systems]
+    extensions:
+      - { id: "rust-lang.rust-analyzer", name: "rust-analyzer" }
+      - { id: "llvm-vs-code-extensions.vscode-clangd", name: "clangd" }
+      - { id: "ms-vscode.cmake-tools", name: "CMake Tools" }
+      - { id: "vadimcn.vscode-lldb", name: "CodeLLDB" }
+      - { id: "ziglang.vscode-zig", name: "Zig Language" }
+  - id: devops
+    name: DevOps and cloud
+    description: Containers, Kubernetes, Terraform and CI.
+    roles: [devops]
+    extensions:
+      - { id: "ms-azuretools.vscode-docker", name: "Docker" }
+      - { id: "ms-kubernetes-tools.vscode-kubernetes-tools", name: "Kubernetes" }
+      - { id: "hashicorp.terraform", name: "HashiCorp Terraform" }
+      - { id: "redhat.ansible", name: "Ansible" }
+      - { id: "GitHub.vscode-github-actions", name: "GitHub Actions" }
+  - id: data
+    name: Data and ML
+    description: Python, notebooks and data files.
+    roles: [data]
+    extensions:
+      - { id: "ms-python.python", name: "Python" }
+      - { id: "ms-toolsai.jupyter", name: "Jupyter" }
+      - { id: "charliermarsh.ruff", name: "Ruff" }
+      - { id: "mechatroner.rainbow-csv", name: "Rainbow CSV" }
+      - { id: "REditorSupport.r", name: "R" }
+  - id: ai
+    name: AI-assisted dev
+    description: Coding assistants that run in the editor.
+    roles: [ai]
+    extensions:
+      - { id: "anthropic.claude-code", name: "Claude Code" }
+      - { id: "Continue.continue", name: "Continue" }
+      - { id: "saoudrizwan.claude-dev", name: "Cline" }
+  - id: game
+    name: Game dev
+    description: Godot, C and C++, and C#.
+    roles: [game]
+    extensions:
+      - { id: "geequlim.godot-tools", name: "godot-tools" }
+      - { id: "ms-vscode.cpptools", name: "C/C++" }
+      - { id: "ms-dotnettools.csharp", name: "C#" }
+  - id: security
+    name: Security
+    description: Binary inspection and code scanning.
+    roles: [security]
+    extensions:
+      - { id: "ms-vscode.hexeditor", name: "Hex Editor" }
+      - { id: "SonarSource.sonarlint-vscode", name: "SonarQube for IDE" }
+  - id: dba
+    name: Database admin
+    description: SQL and document database clients.
+    roles: [dba]
+    extensions:
+      - { id: "mtxr.sqltools", name: "SQLTools" }
+      - { id: "mtxr.sqltools-driver-pg", name: "SQLTools PostgreSQL driver" }
+      - { id: "mtxr.sqltools-driver-mysql", name: "SQLTools MySQL driver" }
+      - { id: "mongodb.mongodb-vscode", name: "MongoDB for VS Code" }
+  - id: learner
+    name: Student or beginner
+    description: A gentle start with Python and live preview.
+    roles: [learner]
+    extensions:
+      - { id: "ms-python.python", name: "Python" }
+      - { id: "formulahendry.code-runner", name: "Code Runner" }
+      - { id: "ritwickdey.LiveServer", name: "Live Server" }

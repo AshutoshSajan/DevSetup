@@ -13,12 +13,12 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 - [x] State file: remembers what DevSetup installed; only those tools can be removed
 - [x] Plan review screen: installs, removals and left-alone tools, the exact commands in execution order (built from the same code that runs them), apt package sizes, and a copy button. Pre-flight checks add the total download and disk estimate
 - [x] Pre-flight checks in the review screen: supported distro, pkexec, curl, reachable hosts, free disk space, apt package lookup with size estimate
-- [ ] Secure Boot warning (needed once driver tools exist, Phase 3)
+- [x] Secure Boot warning: shown on the Drivers page with the Machine Owner Key steps. A pre-flight warning for installs follows once a tool in the list needs a kernel module
 - [x] Cancel a running install (stops user-level steps; the root apt step finishes first, since stopping it is unsafe) and retry failed or cancelled steps, one by one or all at once
 - [x] Remove tools DevSetup installed with apt, Flatpak, mise, npm and pipx, and install-script tools that define an `uninstall` command. Dependents go first, and a tool another remaining tool needs is kept
-- [~] Pinned install scripts: checksum verification before a script runs, strict mode, optional version pins for mise, npm and pipx tools, and `npm run pin` to generate the hashes. Still to do: generate and commit the real hashes (needs internet) and re-pin on a schedule in CI
-- [ ] Polkit policy and `.deb` packaging for the root helper (`packaging/`)
-- [ ] Unit and integration tests for plan and executor
+- [x] Pinned install scripts: checksum verification before a script runs, strict mode, optional version pins for mise, npm and pipx tools, and `npm run pin` to generate the hashes. All eight install scripts carry committed pins, and the weekly `deps-audit` workflow runs the stale-pin check
+- [~] Polkit policy and `.deb` packaging for the root helper: `mainBinaryName`, menu category, a `pkexec` dependency and the policy install are configured in `tauri.conf.json`, contract-tested in `tests/packaging_guard.rs`, and Doctor reports AppImage and missing-policy cases. Still to do: a real `tauri build` and install on a clean machine, a release workflow, an rpm target
+- [~] Unit and integration tests for plan and executor: the planning rules, the install and remove commands and their ordering are unit-tested. Still to do: an end-to-end run against a throwaway root
 
 ## Phase 2: features that set it apart
 - [x] Save and share setups: export the selection as `devsetup.yaml` (file or copied text), load it from a file, pasted text or a GitHub link (`owner/repo`, repo, blob or gist URL). Loading adds to your selection; unknown tools are reported
@@ -30,16 +30,16 @@ Status: `[x]` done, `[~]` started, `[ ]` planned. Features are built roughly in 
 ## Phase 3: post-install setup
 - [x] Git and GitHub wizard: name, email and default branch, an ed25519 SSH key (never overwrites an existing one), GitHub sign-in through the browser with the GitHub CLI, adding the key to GitHub, and commit signing with the SSH key. Still to do: passphrase through an agent prompt, several keys per host, GPG signing
 - [x] Shell setup: a marked block in ~/.zshrc or ~/.bashrc with history defaults, completion, Starship, zsh-autosuggestions, zsh-syntax-highlighting, zoxide, fzf, direnv, mise and aliases, with preview, one-time backup and removal, plus switching the login shell to zsh. Still to do: fish, installing the missing tools in one click, oh-my-zsh style frameworks
-- [ ] VS Code extension packs per role
+- [x] VS Code extension packs per role: 12 packs in `manifest/extensions.yaml`, installed through the editor's own command line. Still to do: editor settings and keybindings, checking ids against the marketplace in CI
 - [ ] System tweaks: Docker group and service, file-watcher limits, Flathub, firewall, timezone
-- [ ] Driver helpers: NVIDIA drivers, CUDA, container toolkit for GPU Docker, Android udev rules for `adb`
+- [~] Driver helpers: read-only GPU, driver and Secure Boot diagnostics with copyable steps for NVIDIA (Debian and Ubuntu), AMD and Intel, plus an Android udev rules tool. Still to do: running the steps from the app with confirmation, an apt-sources editor for non-free, the NVIDIA Container Toolkit repository
 
 ## Phase 4: Stacks tab (disposable Docker services)
-- [ ] Stack cards per project: start, stop, destroy (containers, volumes, network)
-- [ ] Services: Redis, MongoDB, Postgres, MySQL, Kafka, RabbitMQ, MinIO, Elasticsearch, Mailpit, with GUI sidecars
-- [ ] Ready-made combos: MERN, Django + Postgres + Redis, LAMP
-- [ ] Port-conflict detection, `.env` export, volume backup and restore, idle-stack reminders
-- [ ] Connection strings with copy buttons, disk usage per stack
+- [x] Stack cards per project: create, start, stop and destroy (containers, volumes, network), with a cleanup when a stack fails to start
+- [~] Services: Redis, MongoDB, PostgreSQL, MySQL, RabbitMQ, MinIO and Mailpit, with GUI sidecars where there is one, in `manifest/stacks.yaml`. Still to do: Kafka and Elasticsearch (they need extra settings)
+- [x] Ready-made combos: MERN, Django (PostgreSQL + Redis), LAMP, queue and mail testing
+- [~] Port-conflict detection (the next free port is used) and `.env` lines are done. Still to do: volume backup and restore, idle-stack reminders
+- [~] Connection strings with copy buttons are done. Still to do: disk usage per stack
 
 ## Phase 5: later
 - [ ] Command-line version: `devsetup apply devsetup.yaml` for servers, CI and WSL

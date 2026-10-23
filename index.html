@@ -14,6 +14,9 @@
       <button data-v="doctor">Doctor</button>
       <button data-v="git">Git and GitHub</button>
       <button data-v="shell">Shell setup</button>
+      <button data-v="vscode">VS Code</button>
+      <button data-v="drivers">Drivers</button>
+      <button data-v="stacks">Stacks</button>
     </nav>
     <div class="mu" style="margin-top:auto">Theme</div>
     <div id="theme" role="group" aria-label="Theme">
@@ -62,6 +65,21 @@
   <main id="v-shell" hidden>
     <div><h1>Shell setup</h1><div class="mu">Add a prompt, plugins, history settings and aliases to zsh or bash. DevSetup only edits one marked block, backs up your original file once, and can remove the block again.</div></div>
     <div id="shell-list" class="stack"></div>
+  </main>
+  <main id="v-vscode" hidden>
+    <div><h1>VS Code extensions</h1><div class="mu">Install extension packs for your roles. Packs for the roles you picked in Setup are ticked. Extensions install one at a time with the editor's own command line.</div></div>
+    <div id="vs-list" class="stack"></div>
+    <footer><span id="vs-sum" class="mu"></span><button class="bt" id="vs-go" disabled>Install selected</button></footer>
+  </main>
+  <main id="v-drivers" hidden>
+    <div><h1>Drivers</h1><div class="mu">Shows your graphics hardware, its driver and Secure Boot, with steps to follow yourself. This page only reads: DevSetup never installs graphics drivers for you.</div></div>
+    <div class="bar"><span id="drv-sum" class="mu"></span><span class="ctl"><button id="drv-rescan" class="b2">Check again</button></span></div>
+    <div id="drv-list" class="stack"></div>
+  </main>
+  <main id="v-stacks" hidden>
+    <div><h1>Stacks</h1><div class="mu">Disposable Docker services for one project, such as a database with its admin page. They listen on 127.0.0.1 only, and destroying a stack removes its containers, volumes and network.</div></div>
+    <div class="bar"><span id="st-sum" class="mu"></span><span class="ctl"><button id="st-rescan" class="b2">Refresh</button></span></div>
+    <div id="st-list" class="stack"></div>
   </main>
 </div>
 <div id="modal" class="modal" hidden><div class="dlg">
